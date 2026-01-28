@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.x
+
+- Added MediaRemote adapter for universal media detection (works with any media app, not just Apple Music/Spotify)
+- Now Playing widget now uses notification-based updates instead of polling (more efficient)
+- Fixed JSON number parsing for track identifiers
+- Added app name caching to reduce filesystem I/O
+
 ## 0.5.1
 
 > This release was supported by **ALinuxPerson** _(help with the appearance configuration, 1 issue)_, **bake** _(1 issue)_ and **Oery** _(1 issue)_

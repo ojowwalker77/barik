@@ -21,7 +21,7 @@ struct NowPlayingPopup: View {
         .onAppear(perform: loadVariant)
         .onReceive(configProvider.$config, perform: updateVariant)
     }
-    
+
     /// Loads the initial view variant from configuration.
     private func loadVariant() {
         if let variantString = configProvider.config["popup"]?
@@ -32,12 +32,46 @@ struct NowPlayingPopup: View {
             selectedVariant = .box
         }
     }
-    
+
     /// Updates the view variant when configuration changes.
     private func updateVariant(newConfig: ConfigData) {
         if let variantString = newConfig["popup"]?.dictionaryValue?["view-variant"]?.stringValue,
            let variant = MenuBarPopupVariant(rawValue: variantString) {
             selectedVariant = variant
+        }
+    }
+}
+
+// MARK: - Album Art Popup View
+
+/// A view that displays album art in the popup, supporting both NSImage and URL sources.
+private struct PopupAlbumArtView<Content: View>: View {
+    let song: NowPlayingSong
+    let size: CGSize
+    let content: (Image) -> Content
+
+    init(
+        song: NowPlayingSong,
+        size: CGSize,
+        @ViewBuilder content: @escaping (Image) -> Content
+    ) {
+        self.song = song
+        self.size = size
+        self.content = content
+    }
+
+    var body: some View {
+        if let nsImage = song.albumArtImage {
+            // MediaRemote: Use NSImage directly
+            content(Image(nsImage: nsImage))
+        } else {
+            // AppleScript fallback: Use URL with cached image loader
+            RotateAnimatedCachedImage(
+                url: song.albumArtURL,
+                targetSize: size
+            ) { image in
+                content(image)
+            }
         }
     }
 }
@@ -51,11 +85,15 @@ private struct NowPlayingVerticalPopup: View {
            let duration = song.duration,
            let position = song.position {
             VStack(spacing: 15) {
-                RotateAnimatedCachedImage(
-                    url: song.albumArtURL,
-                    targetSize: CGSize(width: 200, height: 200)
+                PopupAlbumArtView(
+                    song: song,
+                    size: CGSize(width: 200, height: 200)
                 ) { image in
-                    image.clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 200, height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .frame(width: 200, height: 200)
                 .scaleEffect(song.state == .paused ? 0.9 : 1)
@@ -120,11 +158,15 @@ struct NowPlayingHorizontalPopup: View {
            let position = song.position {
             VStack(spacing: 15) {
                 HStack(spacing: 15) {
-                    RotateAnimatedCachedImage(
-                        url: song.albumArtURL,
-                        targetSize: CGSize(width: 200, height: 200)
+                    PopupAlbumArtView(
+                        song: song,
+                        size: CGSize(width: 200, height: 200)
                     ) { image in
-                        image.clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .frame(width: 60, height: 60)
                     .scaleEffect(song.state == .paused ? 0.9 : 1)
@@ -198,7 +240,7 @@ struct NowPlayingPopup_Previews: PreviewProvider {
                 .background(Color.black)
                 .frame(height: 600)
                 .previewDisplayName("Vertical")
-            
+
             NowPlayingHorizontalPopup()
                 .background(Color.black)
                 .previewLayout(.sizeThatFits)
