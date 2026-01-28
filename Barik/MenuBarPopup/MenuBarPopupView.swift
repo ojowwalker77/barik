@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarPopupView<Content: View>: View {
     let content: Content
     let isPreview: Bool
+    let screenBounds: ScreenBounds?
 
     @ObservedObject var configManager = ConfigManager.shared
     var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
@@ -21,9 +22,10 @@ struct MenuBarPopupView<Content: View>: View {
     private let willChangeContent = NotificationCenter.default.publisher(
         for: .willChangeContent)
 
-    init(isPreview: Bool = false, @ViewBuilder content: () -> Content) {
+    init(isPreview: Bool = false, screenBounds: ScreenBounds? = nil, @ViewBuilder content: () -> Content) {
         self.content = content()
         self.isPreview = isPreview
+        self.screenBounds = screenBounds
         if isPreview {
             _animationValue = State(initialValue: 1.0)
         }
@@ -136,7 +138,7 @@ struct MenuBarPopupView<Content: View>: View {
     }
 
     var computedOffset: CGFloat {
-        let screenWidth = NSScreen.main?.frame.width ?? 0
+        let screenWidth = screenBounds?.width ?? NSScreen.main?.frame.width ?? 0
         let W = viewFrame.width
         let M = viewFrame.midX
         let newLeft = (M - W / 2) - 20

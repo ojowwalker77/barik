@@ -1,10 +1,16 @@
 import SwiftUI
 
 struct SpacesWidget: View {
-    @StateObject var viewModel = SpacesViewModel()
+    let monitorName: String?
+    @StateObject var viewModel: SpacesViewModel
 
     @ObservedObject var configManager = ConfigManager.shared
     var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
+
+    init(monitorName: String? = nil) {
+        self.monitorName = monitorName
+        _viewModel = StateObject(wrappedValue: SpacesViewModel(monitorName: monitorName))
+    }
 
     var body: some View {
         HStack(spacing: foregroundHeight < 30 ? 0 : 8) {
