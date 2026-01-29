@@ -54,18 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func configDidChange() {
-        // Re-create panels to pick up position changes
-        for panel in backgroundPanels.values {
-            panel.orderOut(nil)
-        }
-        for panel in menuBarPanels.values {
-            panel.orderOut(nil)
-        }
-        backgroundPanels.removeAll()
-        menuBarPanels.removeAll()
+        // Reuse existing panels - setupPanels() already handles reuse via setFrame()
         setupPanels()
 
-        // Reconfigure tiling WM for position change
+        // Reconfigure tiling WM for position change (runs on background queue)
         let foregroundConfig = ConfigManager.shared.config.experimental.foreground
         var barSize = Int(foregroundConfig.resolveHeight())
         if foregroundConfig.position == .bottom {
@@ -123,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hostingRootView: AnyView
     ) {
         if let existingPanel = panels[displayID] {
-            existingPanel.setFrame(frame, display: true)
+            existingPanel.setFrame(frame, display: false)
             return
         }
 
@@ -137,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         newPanel.hasShadow = false
         newPanel.collectionBehavior = [.canJoinAllSpaces, .stationary]
         newPanel.contentView = NSHostingView(rootView: hostingRootView)
-        newPanel.setFrame(frame, display: true)
+        newPanel.setFrame(frame, display: false)
         newPanel.orderFront(nil)
         panels[displayID] = newPanel
     }

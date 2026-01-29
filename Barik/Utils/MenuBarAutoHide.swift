@@ -23,13 +23,15 @@ struct MenuBarAutoHide {
             return
         }
 
-        var error: NSDictionary?
-        appleScript.executeAndReturnError(&error)
+        DispatchQueue.global(qos: .userInitiated).async {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
 
-        if let error = error {
-            print("[Barik] MenuBarAutoHide: AppleScript error: \(error)")
-        } else {
-            print("[Barik] MenuBarAutoHide: Success")
+            if let error = error {
+                print("[Barik] MenuBarAutoHide: AppleScript error: \(error)")
+            } else {
+                print("[Barik] MenuBarAutoHide: Success")
+            }
         }
     }
 }
