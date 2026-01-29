@@ -1,7 +1,12 @@
 import SwiftUI
 
 struct MenuBarView: View {
+    let monitorName: String?
     @ObservedObject var configManager = ConfigManager.shared
+
+    init(monitorName: String? = nil) {
+        self.monitorName = monitorName
+    }
 
     var body: some View {
         let theme: ColorScheme? =
@@ -43,7 +48,7 @@ struct MenuBarView: View {
 
         switch item.id {
         case "default.spaces":
-            SpacesWidget().environmentObject(config)
+            SpacesWidget(monitorName: monitorName).environmentObject(config)
 
         case "default.network":
             NetworkWidget().environmentObject(config)

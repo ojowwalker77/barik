@@ -1,8 +1,8 @@
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var backgroundPanel: NSPanel?
-    private var menuBarPanel: NSPanel?
+    private var backgroundPanels: [CGDirectDisplayID: NSPanel] = [:]
+    private var menuBarPanels: [CGDirectDisplayID: NSPanel] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let error = ConfigManager.shared.initError {
@@ -19,6 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
+        // Configure tiling WMs to respect Barik's space
+        let barHeight = Int(ConfigManager.shared.config.experimental.foreground.resolveHeight())
+        TilingWMConfigurator.configureOnLaunch(barHeight: barHeight)
+
         MenuBarPopup.setup()
         setupPanels()
 
@@ -33,27 +37,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupPanels()
     }
 
-    /// Configures and displays the background and menu bar panels.
+    /// Configures and displays the background and menu bar panels on all screens.
     private func setupPanels() {
-        guard let screenFrame = NSScreen.main?.frame else { return }
-        setupPanel(
-            &backgroundPanel,
-            frame: screenFrame,
-            level: Int(CGWindowLevelForKey(.desktopWindow)),
-            hostingRootView: AnyView(BackgroundView()))
-        setupPanel(
-            &menuBarPanel,
-            frame: screenFrame,
-            level: Int(CGWindowLevelForKey(.backstopMenu)),
-            hostingRootView: AnyView(MenuBarView()))
+        let screens = NSScreen.screens
+        var activeDisplayIDs = Set<CGDirectDisplayID>()
+
+        for screen in screens {
+            let displayID = screen.displayID
+            activeDisplayIDs.insert(displayID)
+            let screenFrame = screen.frame
+
+            setupPanel(
+                in: &backgroundPanels,
+                for: displayID,
+                frame: screenFrame,
+                level: Int(CGWindowLevelForKey(.desktopWindow)),
+                hostingRootView: AnyView(BackgroundView()))
+            setupPanel(
+                in: &menuBarPanels,
+                for: displayID,
+                frame: screenFrame,
+                level: Int(CGWindowLevelForKey(.backstopMenu)),
+                hostingRootView: AnyView(MenuBarView(monitorName: screen.localizedName)))
+        }
+
+        // Remove panels for disconnected screens
+        for displayID in backgroundPanels.keys where !activeDisplayIDs.contains(displayID) {
+            backgroundPanels[displayID]?.orderOut(nil)
+            backgroundPanels.removeValue(forKey: displayID)
+        }
+        for displayID in menuBarPanels.keys where !activeDisplayIDs.contains(displayID) {
+            menuBarPanels[displayID]?.orderOut(nil)
+            menuBarPanels.removeValue(forKey: displayID)
+        }
+
+        MenuBarPopup.setupAllScreens()
     }
 
-    /// Sets up an NSPanel with the provided parameters.
+    /// Sets up an NSPanel with the provided parameters for a specific display.
     private func setupPanel(
-        _ panel: inout NSPanel?, frame: CGRect, level: Int,
+        in panels: inout [CGDirectDisplayID: NSPanel],
+        for displayID: CGDirectDisplayID,
+        frame: CGRect,
+        level: Int,
         hostingRootView: AnyView
     ) {
-        if let existingPanel = panel {
+        if let existingPanel = panels[displayID] {
             existingPanel.setFrame(frame, display: true)
             return
         }
@@ -66,10 +95,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         newPanel.level = NSWindow.Level(rawValue: level)
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = false
-        newPanel.collectionBehavior = [.canJoinAllSpaces]
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .stationary]
         newPanel.contentView = NSHostingView(rootView: hostingRootView)
+        newPanel.setFrame(frame, display: true)
         newPanel.orderFront(nil)
-        panel = newPanel
+        panels[displayID] = newPanel
     }
     
     private func showFatalConfigError(message: String) {
@@ -81,5 +111,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         alert.runModal()
         NSApplication.shared.terminate(nil)
+    }
+}
+
+extension NSScreen {
+    var displayID: CGDirectDisplayID {
+        guard let screenNumber = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            return 0
+        }
+        return CGDirectDisplayID(screenNumber.uint32Value)
     }
 }
