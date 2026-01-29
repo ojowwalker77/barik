@@ -4,6 +4,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var backgroundPanels: [CGDirectDisplayID: NSPanel] = [:]
     private var menuBarPanels: [CGDirectDisplayID: NSPanel] = [:]
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let error = ConfigManager.shared.initError {
             showFatalConfigError(message: error)
@@ -37,10 +41,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             selector: #selector(screenParametersDidChange(_:)),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(configDidChange),
+            name: Notification.Name("ConfigDidChange"),
+            object: nil)
     }
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
         setupPanels()
+    }
+
+    @objc private func configDidChange() {
+        // Re-create panels to pick up position changes
+        for panel in backgroundPanels.values {
+            panel.orderOut(nil)
+        }
+        for panel in menuBarPanels.values {
+            panel.orderOut(nil)
+        }
+        backgroundPanels.removeAll()
+        menuBarPanels.removeAll()
+        setupPanels()
+
+        // Reconfigure tiling WM for position change
+        let foregroundConfig = ConfigManager.shared.config.experimental.foreground
+        var barSize = Int(foregroundConfig.resolveHeight())
+        if foregroundConfig.position == .bottom {
+            barSize += 15
+        }
+        TilingWMConfigurator.configureOnLaunch(barSize: barSize, position: foregroundConfig.position)
     }
 
     /// Configures and displays the background and menu bar panels on all screens.

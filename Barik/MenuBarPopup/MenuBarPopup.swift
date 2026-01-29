@@ -40,19 +40,28 @@ class MenuBarPopup {
     static func show<Content: View>(
         rect: CGRect, id: String, @ViewBuilder content: @escaping () -> Content
     ) {
+        print("[DEBUG] MenuBarPopup.show called - id: \(id), rect: \(rect)")
+
         // Find which screen the widget rect is on
         let targetScreen = NSScreen.screens.first { screen in
             screen.frame.contains(CGPoint(x: rect.midX, y: rect.midY))
         } ?? NSScreen.main
 
-        guard let screen = targetScreen else { return }
+        guard let screen = targetScreen else {
+            print("[DEBUG] No screen found!")
+            return
+        }
         let displayID = screen.displayID
-        guard let panel = panels[displayID] else { return }
+        print("[DEBUG] Screen: \(screen.frame), displayID: \(displayID)")
+
+        guard let panel = panels[displayID] else {
+            print("[DEBUG] No panel for displayID: \(displayID), available: \(panels.keys)")
+            return
+        }
+        print("[DEBUG] Panel found, frame: \(panel.frame), level: \(panel.level.rawValue)")
 
         let position = ConfigManager.shared.config.experimental.foreground.position
-
-        // Calculate position relative to screen origin
-        let relativeX = rect.midX - screen.frame.origin.x
+        print("[DEBUG] Position: \(position)")
 
         // Hide other screen popups
         for (otherID, otherPanel) in panels where otherID != displayID {
@@ -85,21 +94,33 @@ class MenuBarPopup {
             hidingPanel.hideTimer = nil
         }
 
-        let screenBounds = ScreenBounds(
-            width: screen.frame.width,
-            height: screen.frame.height,
-            originX: screen.frame.origin.x,
-            originY: screen.frame.origin.y,
-            position: position
-        )
+        // Position the panel at the correct location
+        let popupSize = CGSize(width: 400, height: 500)
 
-        // Position popup horizontally
+        // Panel X: centered on widget, clamped to screen
+        let panelX = max(screen.frame.minX + 10,
+                         min(rect.midX - popupSize.width / 2,
+                             screen.frame.maxX - popupSize.width - 10))
+
+        // rect is in flipped coords (origin top-left), convert to macOS (origin bottom-left)
+        let screenHeight = screen.frame.height
+        let widgetTopMacOS = screen.frame.origin.y + screenHeight - rect.minY
+        let widgetBottomMacOS = screen.frame.origin.y + screenHeight - rect.maxY
+
+        // Panel Y: above widget for bottom bar, below widget for top bar
+        let panelY: CGFloat = switch position {
+        case .top: widgetBottomMacOS - popupSize.height - 5   // Popup below widget
+        case .bottom: widgetTopMacOS + 5                       // Popup above widget
+        }
+        print("[DEBUG] widgetTopMacOS: \(widgetTopMacOS), widgetBottomMacOS: \(widgetBottomMacOS)")
+
+        let panelFrame = CGRect(origin: CGPoint(x: panelX, y: panelY), size: popupSize)
+        panel.setFrame(panelFrame, display: false)
+        print("[DEBUG] Panel frame set to: \(panelFrame)")
+
         let popupView = AnyView(
-            ZStack {
-                MenuBarPopupView(screenBounds: screenBounds) {
-                    content()
-                }
-                .position(x: relativeX)
+            MenuBarPopupView(position: position) {
+                content()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         )
@@ -120,8 +141,10 @@ class MenuBarPopup {
                 }
             }
         } else {
+            print("[DEBUG] Showing popup panel (not key)")
             panel.contentView = NSHostingView(rootView: popupView)
             panel.makeKeyAndOrderFront(nil)
+            print("[DEBUG] makeKeyAndOrderFront called, isVisible: \(panel.isVisible), isKey: \(panel.isKeyWindow)")
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
                     name: .willShowWindow, object: nil)
@@ -141,34 +164,23 @@ class MenuBarPopup {
             let displayID = screen.displayID
             activeDisplayIDs.insert(displayID)
 
-            if panels[displayID] != nil {
-                // Update existing panel frame
-                let panelFrame = NSRect(
-                    x: screen.frame.origin.x,
-                    y: screen.frame.origin.y,
-                    width: screen.frame.width,
-                    height: screen.visibleFrame.height
-                )
-                panels[displayID]?.setFrame(panelFrame, display: true)
+            if let existingPanel = panels[displayID] {
+                // Just update the level, frame is set in show()
+                existingPanel.level = NSWindow.Level(
+                    rawValue: Int(CGWindowLevelForKey(.popUpMenuWindow)))
                 continue
             }
 
-            let panelFrame = NSRect(
-                x: screen.frame.origin.x,
-                y: screen.frame.origin.y,
-                width: screen.frame.width,
-                height: screen.visibleFrame.height
-            )
-
+            // Create with minimal frame - actual position set in show()
             let newPanel = HidingPanel(
-                contentRect: panelFrame,
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 500),
                 styleMask: [.nonactivatingPanel],
                 backing: .buffered,
                 defer: false
             )
 
             newPanel.level = NSWindow.Level(
-                rawValue: Int(CGWindowLevelForKey(.floatingWindow)))
+                rawValue: Int(CGWindowLevelForKey(.popUpMenuWindow)))
             newPanel.backgroundColor = .clear
             newPanel.hasShadow = false
             newPanel.collectionBehavior = [.canJoinAllSpaces]
@@ -182,12 +194,4 @@ class MenuBarPopup {
             panels.removeValue(forKey: displayID)
         }
     }
-}
-
-struct ScreenBounds {
-    let width: CGFloat
-    let height: CGFloat
-    let originX: CGFloat
-    let originY: CGFloat
-    let position: BarPosition
 }
