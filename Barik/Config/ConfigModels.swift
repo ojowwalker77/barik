@@ -268,38 +268,57 @@ struct ExperimentalConfig: Decodable {
 
 struct ForegroundConfig: Decodable {
     let height: BackgroundForegroundHeight
+    let width: BackgroundForegroundHeight
+    let position: BarPosition
     let horizontalPadding: CGFloat
     let widgetsBackground: WidgetBackgroundConfig
     let spacing: CGFloat
-    
+
     init() {
         self.height = .barikDefault
+        self.width = .barikDefault
+        self.position = .top
         self.horizontalPadding = Constants.menuBarHorizontalPadding
         self.widgetsBackground = WidgetBackgroundConfig()
         self.spacing = 15
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         height = try container.decodeIfPresent(BackgroundForegroundHeight.self, forKey: .height) ?? .barikDefault
+        width = try container.decodeIfPresent(BackgroundForegroundHeight.self, forKey: .width) ?? .barikDefault
+        position = try container.decodeIfPresent(BarPosition.self, forKey: .position) ?? .top
         horizontalPadding = try container.decodeIfPresent(CGFloat.self, forKey: .horizontalPadding) ?? Constants.menuBarHorizontalPadding
         widgetsBackground = try container.decodeIfPresent(WidgetBackgroundConfig.self, forKey: .widgetsBackground) ?? WidgetBackgroundConfig()
         spacing = try container.decodeIfPresent(CGFloat.self, forKey: .spacing) ?? 15
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case height
+        case width
+        case position
         case horizontalPadding = "horizontal-padding"
         case widgetsBackground = "widgets-background"
         case spacing
     }
-    
+
     func resolveHeight() -> CGFloat {
         switch height {
         case .barikDefault:
             return CGFloat(Constants.menuBarHeight)
         case .menuBar:
             return NSApplication.shared.mainMenu.map({ CGFloat($0.menuBarHeight) }) ?? 0
+        case .float(let value):
+            return CGFloat(value)
+        }
+    }
+
+    func resolveWidth() -> CGFloat {
+        switch width {
+        case .barikDefault:
+            return CGFloat(Constants.menuBarWidth)
+        case .menuBar:
+            return CGFloat(Constants.menuBarWidth)
         case .float(let value):
             return CGFloat(value)
         }
@@ -402,6 +421,10 @@ enum ForegroundPadding: Decodable {
             )
         )
     }
+}
+
+enum BarPosition: String, Decodable {
+    case top, bottom
 }
 
 enum BackgroundForegroundHeight: Decodable {

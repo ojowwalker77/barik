@@ -49,8 +49,12 @@ final class ConfigManager: ObservableObject {
             let content = try String(contentsOfFile: path, encoding: .utf8)
             let decoder = TOMLDecoder()
             let rootToml = try decoder.decode(RootToml.self, from: content)
-            DispatchQueue.main.async {
+            if Thread.isMainThread {
                 self.config = Config(rootToml: rootToml)
+            } else {
+                DispatchQueue.main.async {
+                    self.config = Config(rootToml: rootToml)
+                }
             }
         } catch {
             initError = "Error parsing TOML file: \(error.localizedDescription)"

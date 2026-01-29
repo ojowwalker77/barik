@@ -3,14 +3,14 @@ import Foundation
 /// Configures tiling window managers (AeroSpace, Yabai) to respect Barik's space
 class TilingWMConfigurator {
 
-    static func configureOnLaunch(barHeight: Int) {
-        configureAeroSpace(barHeight: barHeight)
-        configureYabai(barHeight: barHeight)
+    static func configureOnLaunch(barSize: Int, position: BarPosition) {
+        configureAeroSpace(barSize: barSize, position: position)
+        configureYabai(barSize: barSize, position: position)
     }
 
     // MARK: - AeroSpace
 
-    private static func configureAeroSpace(barHeight: Int) {
+    private static func configureAeroSpace(barSize: Int, position: BarPosition) {
         let configPath = NSString(string: "~/.aerospace.toml").expandingTildeInPath
 
         guard FileManager.default.fileExists(atPath: configPath) else {
@@ -23,39 +23,99 @@ class TilingWMConfigurator {
             return
         }
 
-        // Check if already configured with per-monitor settings for Barik
-        if isAlreadyConfiguredForBarik(content: content, barHeight: barHeight) {
-            print("[Barik] AeroSpace already configured with per-monitor gaps for Barik")
-            return
+        print("[Barik] Configuring AeroSpace for position: \(position), barSize: \(barSize)")
+
+        // Update both outer gaps: active position gets barSize, other gets default
+        let allPositions: [BarPosition] = [.top, .bottom]
+        let defaultGap = 10
+        var updated = content
+
+        for pos in allPositions {
+            let gapKey = aerospaceGapKey(for: pos)
+            let value = (pos == position) ? barSize : defaultGap
+            updated = setAeroSpaceGap(in: updated, gapKey: gapKey, value: value, position: pos)
         }
 
-        // Update the config with per-monitor gaps
-        // main (notched) display keeps original value, secondary (external) gets barHeight
-        if let updated = updateAeroSpaceOuterTop(in: content, to: barHeight) {
-            do {
-                try updated.write(toFile: configPath, atomically: true, encoding: .utf8)
-                print("[Barik] Updated AeroSpace with per-monitor outer.top (secondary = \(barHeight))")
+        // Reset left/right gaps to default (cleanup from old vertical support)
+        updated = resetAeroSpaceGap(in: updated, gapKey: "outer.left", value: defaultGap)
+        updated = resetAeroSpaceGap(in: updated, gapKey: "outer.right", value: defaultGap)
 
-                // Reload AeroSpace config
-                reloadAeroSpace()
-            } catch {
-                print("[Barik] Failed to write AeroSpace config: \(error)")
+        do {
+            try updated.write(toFile: configPath, atomically: true, encoding: .utf8)
+            print("[Barik] Updated AeroSpace gaps (active: \(aerospaceGapKey(for: position)) = \(barSize), others = \(defaultGap))")
+            reloadAeroSpace()
+        } catch {
+            print("[Barik] Failed to write AeroSpace config: \(error)")
+        }
+    }
+
+    private static func aerospaceGapKey(for position: BarPosition) -> String {
+        switch position {
+        case .top: return "outer.top"
+        case .bottom: return "outer.bottom"
+        }
+    }
+
+    /// Sets a single AeroSpace gap in the config content.
+    /// For .top position: uses per-monitor format to handle MacBook notch
+    /// For others: uses simple value format
+    private static func setAeroSpaceGap(in content: String, gapKey: String, value: Int, position: BarPosition) -> String {
+        var lines = content.components(separatedBy: .newlines)
+        var inGapsSection = false
+        var gapsSectionEndIndex: Int?
+
+        for (index, line) in lines.enumerated() {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.hasPrefix("[gaps]") {
+                inGapsSection = true
+                gapsSectionEndIndex = index
+                continue
+            }
+
+            if inGapsSection && trimmed.hasPrefix("[") && !trimmed.hasPrefix("[gaps") {
+                inGapsSection = false
+                continue
+            }
+
+            if inGapsSection {
+                gapsSectionEndIndex = index
+
+                if trimmed.hasPrefix(gapKey) {
+                    let indent = String(line.prefix(while: { $0.isWhitespace }))
+                    lines[index] = formatAeroSpaceGapLine(indent: indent, gapKey: gapKey, value: value, position: position)
+                    return lines.joined(separator: "\n")
+                }
             }
         }
-    }
 
-    private static func isAlreadyConfiguredForBarik(content: String, barHeight: Int) -> Bool {
-        // Check if outer.top has per-monitor config with Built-in pattern and barHeight as default
-        // Pattern: outer.top = [{ monitor."^Built-in.*" = 10 }, 55]
-        let pattern = "outer\\.top\\s*=\\s*\\[.*Built-in.*,\\s*\(barHeight)\\s*\\]"
-        if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-           regex.firstMatch(in: content, options: [], range: NSRange(content.startIndex..., in: content)) != nil {
-            return true
+        // Gap key not found - add to [gaps] section
+        var gapsIndex = lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("[gaps]") }
+
+        if gapsIndex == nil {
+            lines.append("")
+            lines.append("[gaps]")
+            gapsIndex = lines.count - 1
         }
-        return false
+
+        // Insert after last line in [gaps] section, or right after [gaps] header
+        let insertIndex = (gapsSectionEndIndex ?? gapsIndex!) + 1
+        lines.insert(formatAeroSpaceGapLine(indent: "", gapKey: gapKey, value: value, position: position), at: insertIndex)
+
+        return lines.joined(separator: "\n")
     }
 
-    private static func updateAeroSpaceOuterTop(in content: String, to value: Int) -> String? {
+    private static func formatAeroSpaceGapLine(indent: String, gapKey: String, value: Int, position: BarPosition) -> String {
+        // Per-monitor format for .top to handle MacBook notch (Built-in display uses default, externals use value)
+        if position == .top {
+            return "\(indent)\(gapKey) = [{ monitor.\"^Built-in.*\" = 10 }, \(value)]"
+        } else {
+            return "\(indent)\(gapKey) = \(value)"
+        }
+    }
+
+    /// Resets a gap to a simple value (used for cleaning up old left/right gaps)
+    private static func resetAeroSpaceGap(in content: String, gapKey: String, value: Int) -> String {
         var lines = content.components(separatedBy: .newlines)
         var inGapsSection = false
 
@@ -72,56 +132,15 @@ class TilingWMConfigurator {
                 continue
             }
 
-            if inGapsSection && trimmed.hasPrefix("outer.top") {
+            if inGapsSection && trimmed.hasPrefix(gapKey) {
                 let indent = String(line.prefix(while: { $0.isWhitespace }))
-                let defaultGap = 10
-
-                // Per-monitor config using monitor name regex:
-                // - "Built-in.*" matches MacBook display (has notch, macOS reserves space)
-                // - Default (everything else) = barHeight for external monitors
-                lines[index] = "\(indent)outer.top = [{ monitor.\"^Built-in.*\" = \(defaultGap) }, \(value)]"
+                lines[index] = "\(indent)\(gapKey) = \(value)"
                 return lines.joined(separator: "\n")
             }
         }
 
-        // No outer.top found, add to [gaps] section
-        var gapsIndex = lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("[gaps]") }
-
-        if gapsIndex == nil {
-            // Add [gaps] section at the end
-            lines.append("")
-            lines.append("[gaps]")
-            gapsIndex = lines.count - 1
-        }
-
-        // Insert after [gaps] line
-        // Use regex to match Built-in display (MacBook with notch)
-        if let idx = gapsIndex {
-            lines.insert("outer.top = [{ monitor.\"^Built-in.*\" = 10 }, \(value)]", at: idx + 1)
-        }
-
-        return lines.joined(separator: "\n")
-    }
-
-    private static func extractMainValue(from line: String) -> Int? {
-        // Extract value from: outer.top = [{ monitor.main = 16 }, ...]
-        let pattern = "monitor\\.main\\s*=\\s*(\\d+)"
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
-              let match = regex.firstMatch(in: line, options: [], range: NSRange(line.startIndex..., in: line)),
-              let range = Range(match.range(at: 1), in: line) else {
-            return nil
-        }
-        return Int(line[range])
-    }
-
-    private static func extractSimpleValue(from line: String) -> Int? {
-        // Extract value from: outer.top = 10
-        let parts = line.components(separatedBy: "=")
-        if parts.count >= 2 {
-            let valueStr = parts[1].trimmingCharacters(in: .whitespaces)
-            return Int(valueStr)
-        }
-        return nil
+        // Gap not found, nothing to reset
+        return content
     }
 
     private static func reloadAeroSpace() {
@@ -153,7 +172,7 @@ class TilingWMConfigurator {
 
     // MARK: - Yabai
 
-    private static func configureYabai(barHeight: Int) {
+    private static func configureYabai(barSize: Int, position: BarPosition) {
         let yabaiPathBrew = "/opt/homebrew/bin/yabai"
         let yabaiPathLocal = "/usr/local/bin/yabai"
 
@@ -188,18 +207,28 @@ class TilingWMConfigurator {
             return
         }
 
-        // Configure external_bar for all displays
+        // Configure based on position
+        switch position {
+        case .top:
+            configureYabaiExternalBar(path: path, topPadding: barSize, bottomPadding: 0)
+        case .bottom:
+            configureYabaiExternalBar(path: path, topPadding: 0, bottomPadding: barSize)
+        }
+    }
+
+    private static func configureYabaiExternalBar(path: String, topPadding: Int, bottomPadding: Int) {
         // Format: yabai -m config external_bar all:TOP_PADDING:BOTTOM_PADDING
         let task = Process()
         task.executableURL = URL(fileURLWithPath: path)
-        task.arguments = ["-m", "config", "external_bar", "all:\(barHeight):0"]
+        task.arguments = ["-m", "config", "external_bar", "all:\(topPadding):\(bottomPadding)"]
 
         do {
             try task.run()
             task.waitUntilExit()
-            print("[Barik] Configured Yabai external_bar to \(barHeight)")
+            print("[Barik] Configured Yabai external_bar to \(topPadding):\(bottomPadding)")
         } catch {
             print("[Barik] Failed to configure Yabai: \(error)")
         }
     }
+
 }

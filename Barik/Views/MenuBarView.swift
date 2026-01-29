@@ -20,6 +20,13 @@ struct MenuBarView: View {
             }
 
         let items = configManager.config.rootToml.widgets.displayed
+        let position = configManager.config.experimental.foreground.position
+        let padding = configManager.config.experimental.foreground.horizontalPadding
+
+        let alignment: Alignment = switch position {
+        case .top: .top
+        case .bottom: .bottom
+        }
 
         HStack(spacing: 0) {
             HStack(spacing: configManager.config.experimental.foreground.spacing) {
@@ -35,8 +42,8 @@ struct MenuBarView: View {
         }
         .foregroundStyle(Color.foregroundOutside)
         .frame(height: max(configManager.config.experimental.foreground.resolveHeight(), 1.0))
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, configManager.config.experimental.foreground.horizontalPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .padding(.horizontal, padding)
         .background(.black.opacity(0.001))
         .preferredColorScheme(theme)
     }

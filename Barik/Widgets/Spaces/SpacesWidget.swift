@@ -44,6 +44,7 @@ private struct SpaceView: View {
 
     var body: some View {
         let isFocused = space.windows.contains { $0.isFocused } || space.isFocused
+
         HStack(spacing: 0) {
             Spacer().frame(width: 10)
             if showKey {
