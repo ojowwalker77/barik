@@ -10,7 +10,8 @@ struct SettingsPopup: View {
             HStack(spacing: 0) {
                 TabButton(title: "General", isSelected: selectedTab == 0) { selectedTab = 0 }
                 TabButton(title: "Bar", isSelected: selectedTab == 1) { selectedTab = 1 }
-                TabButton(title: "Advanced", isSelected: selectedTab == 2) { selectedTab = 2 }
+                TabButton(title: "Widgets", isSelected: selectedTab == 2) { selectedTab = 2 }
+                TabButton(title: "Advanced", isSelected: selectedTab == 3) { selectedTab = 3 }
             }
             .padding(.horizontal, 8)
             .padding(.top, 8)
@@ -24,14 +25,15 @@ struct SettingsPopup: View {
                     switch selectedTab {
                     case 0: GeneralTab(configManager: configManager)
                     case 1: BarTab(configManager: configManager)
-                    case 2: AdvancedTab()
+                    case 2: WidgetsTab(configManager: configManager)
+                    case 3: AdvancedTab(configManager: configManager)
                     default: EmptyView()
                     }
                 }
                 .padding(16)
             }
         }
-        .frame(width: 360, height: 380)
+        .frame(width: 360, height: 420)
         .background(.regularMaterial)
     }
 }
@@ -221,6 +223,7 @@ struct BarTab: View {
                     }
                 }
             }
+
         }
         .onAppear {
             backgroundBlur = Double(backgroundBlurRaw)
@@ -245,16 +248,270 @@ struct BarTab: View {
     }
 }
 
+// MARK: - Widgets Tab
+
+struct WidgetsTab: View {
+    @ObservedObject var configManager: ConfigManager
+
+    // Battery state
+    @State private var showPercentage = true
+    @State private var warningLevel: Double = 30
+    @State private var criticalLevel: Double = 10
+
+    // Time state
+    @State private var timeFormat = "E d, J:mm"
+    @State private var showCalendarEvents = true
+    @State private var calendarFormat = "J:mm"
+    @State private var popupVariant = "box"
+
+    // Spaces state
+    @State private var showSpaceKey = true
+    @State private var showWindowTitle = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SettingsSection(title: "Battery") {
+                Toggle("Show percentage", isOn: $showPercentage)
+                    .onChange(of: showPercentage) { _, newValue in
+                        ConfigManager.shared.updateConfigValue(
+                            tablePath: "widgets.default.battery",
+                            key: "show-percentage",
+                            newValue: newValue
+                        )
+                    }
+
+                SliderRow(
+                    label: "Warning level",
+                    value: $warningLevel,
+                    range: 5...50,
+                    unit: "%"
+                ) { newValue in
+                    ConfigManager.shared.updateConfigValue(
+                        tablePath: "widgets.default.battery",
+                        key: "warning-level",
+                        newValue: Int(newValue)
+                    )
+                }
+
+                SliderRow(
+                    label: "Critical level",
+                    value: $criticalLevel,
+                    range: 5...30,
+                    unit: "%"
+                ) { newValue in
+                    ConfigManager.shared.updateConfigValue(
+                        tablePath: "widgets.default.battery",
+                        key: "critical-level",
+                        newValue: Int(newValue)
+                    )
+                }
+            }
+
+            SettingsSection(title: "Time") {
+                TextFieldRow(label: "Format", text: $timeFormat) { newValue in
+                    ConfigManager.shared.updateConfigValue(
+                        tablePath: "widgets.default.time",
+                        key: "format",
+                        newValue: newValue
+                    )
+                }
+
+                Toggle("Show calendar events", isOn: $showCalendarEvents)
+                    .onChange(of: showCalendarEvents) { _, newValue in
+                        ConfigManager.shared.updateConfigValue(
+                            tablePath: "widgets.default.time",
+                            key: "calendar.show-events",
+                            newValue: newValue
+                        )
+                    }
+
+                TextFieldRow(label: "Calendar format", text: $calendarFormat) { newValue in
+                    ConfigManager.shared.updateConfigValue(
+                        tablePath: "widgets.default.time",
+                        key: "calendar.format",
+                        newValue: newValue
+                    )
+                }
+
+                HStack {
+                    Text("Popup style")
+                    Spacer()
+                    Picker("", selection: $popupVariant) {
+                        Text("Box").tag("box")
+                        Text("Vertical").tag("vertical")
+                        Text("Horizontal").tag("horizontal")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 180)
+                    .onChange(of: popupVariant) { _, newValue in
+                        ConfigManager.shared.updateConfigValue(
+                            tablePath: "popup.default.time",
+                            key: "view-variant",
+                            newValue: newValue
+                        )
+                    }
+                }
+            }
+
+            SettingsSection(title: "Spaces") {
+                Toggle("Show space key", isOn: $showSpaceKey)
+                    .onChange(of: showSpaceKey) { _, newValue in
+                        ConfigManager.shared.updateConfigValue(
+                            tablePath: "widgets.default.spaces",
+                            key: "space.show-key",
+                            newValue: newValue
+                        )
+                    }
+
+                Toggle("Show window title", isOn: $showWindowTitle)
+                    .onChange(of: showWindowTitle) { _, newValue in
+                        ConfigManager.shared.updateConfigValue(
+                            tablePath: "widgets.default.spaces",
+                            key: "window.show-title",
+                            newValue: newValue
+                        )
+                    }
+            }
+        }
+        .onAppear { loadFromConfig() }
+    }
+
+    private func loadFromConfig() {
+        // Load battery config
+        if let batteryConfig = configManager.config.rootToml.widgets.config(for: "default.battery") {
+            if let showPct = batteryConfig["show-percentage"]?.boolValue {
+                showPercentage = showPct
+            }
+            if let warning = batteryConfig["warning-level"]?.intValue {
+                warningLevel = Double(warning)
+            }
+            if let critical = batteryConfig["critical-level"]?.intValue {
+                criticalLevel = Double(critical)
+            }
+        }
+
+        // Load time config
+        if let timeConfig = configManager.config.rootToml.widgets.config(for: "default.time") {
+            if let format = timeConfig["format"]?.stringValue {
+                timeFormat = format
+            }
+            if let calendarDict = timeConfig["calendar"]?.dictionaryValue {
+                if let showEvents = calendarDict["show-events"]?.boolValue {
+                    showCalendarEvents = showEvents
+                }
+                if let calFormat = calendarDict["format"]?.stringValue {
+                    calendarFormat = calFormat
+                }
+            }
+        }
+
+        // Note: popup config is in a separate [popup.default.time] table
+        // which isn't currently decoded in the config model.
+        // The default value "box" will be used, and changes will be saved correctly.
+
+        // Load spaces config
+        if let spacesConfig = configManager.config.rootToml.widgets.config(for: "default.spaces") {
+            if let spaceDict = spacesConfig["space"]?.dictionaryValue,
+               let showKey = spaceDict["show-key"]?.boolValue {
+                showSpaceKey = showKey
+            }
+            if let windowDict = spacesConfig["window"]?.dictionaryValue,
+               let showTitle = windowDict["show-title"]?.boolValue {
+                showWindowTitle = showTitle
+            }
+        }
+    }
+}
+
+// MARK: - Slider Row
+
+struct SliderRow: View {
+    let label: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var unit: String = ""
+    var onCommit: (Double) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(label): \(Int(value))\(unit)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Slider(value: $value, in: range, step: 1) { editing in
+                if !editing {
+                    onCommit(value)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - TextField Row
+
+struct TextFieldRow: View {
+    let label: String
+    @Binding var text: String
+    var onCommit: (String) -> Void
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            TextField("", text: $text)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 140)
+                .onSubmit {
+                    onCommit(text)
+                }
+        }
+    }
+}
+
 // MARK: - Advanced Tab
 
 struct AdvancedTab: View {
+    @ObservedObject var configManager: ConfigManager
+
+    @State private var aerospacePath: String = ""
+    @State private var yabaiPath: String = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SettingsSection(title: "Configuration") {
-                Text("Widget-specific settings (battery, time, spaces) must be configured in the config file.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            SettingsSection(title: "Tiling Window Managers") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AeroSpace path")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Auto-detect", text: $aerospacePath)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            if !aerospacePath.isEmpty {
+                                ConfigManager.shared.updateConfigValue(key: "aerospace.path", newValue: aerospacePath)
+                            }
+                        }
+                    Text("Leave empty for auto-detection")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
 
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Yabai path")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Auto-detect", text: $yabaiPath)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            if !yabaiPath.isEmpty {
+                                ConfigManager.shared.updateConfigValue(key: "yabai.path", newValue: yabaiPath)
+                            }
+                        }
+                    Text("Leave empty for auto-detection")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            SettingsSection(title: "Configuration") {
                 Button("Open Config File") {
                     openConfigFile()
                 }
@@ -267,6 +524,19 @@ struct AdvancedTab: View {
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
+        }
+        .onAppear {
+            loadPaths()
+        }
+    }
+
+    private func loadPaths() {
+        if let aerospace = configManager.config.rootToml.aerospace {
+            // Only show if it was explicitly set (not auto-detected)
+            // We can't easily detect this, so we leave it empty to indicate auto-detect
+        }
+        if let yabai = configManager.config.rootToml.yabai {
+            // Same as above
         }
     }
 

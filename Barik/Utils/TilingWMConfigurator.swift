@@ -4,8 +4,10 @@ import Foundation
 class TilingWMConfigurator {
 
     static func configureOnLaunch(barSize: Int, position: BarPosition) {
-        configureAeroSpace(barSize: barSize, position: position)
-        configureYabai(barSize: barSize, position: position)
+        DispatchQueue.global(qos: .userInitiated).async {
+            configureAeroSpace(barSize: barSize, position: position)
+            configureYabai(barSize: barSize, position: position)
+        }
     }
 
     // MARK: - AeroSpace
@@ -13,17 +15,8 @@ class TilingWMConfigurator {
     private static func configureAeroSpace(barSize: Int, position: BarPosition) {
         let configPath = NSString(string: "~/.aerospace.toml").expandingTildeInPath
 
-        guard FileManager.default.fileExists(atPath: configPath) else {
-            print("[Barik] AeroSpace config not found at \(configPath)")
-            return
-        }
-
-        guard let content = try? String(contentsOfFile: configPath, encoding: .utf8) else {
-            print("[Barik] Could not read AeroSpace config")
-            return
-        }
-
-        print("[Barik] Configuring AeroSpace for position: \(position), barSize: \(barSize)")
+        guard FileManager.default.fileExists(atPath: configPath) else { return }
+        guard let content = try? String(contentsOfFile: configPath, encoding: .utf8) else { return }
 
         // Update both outer gaps: active position gets barSize, other gets default
         let allPositions: [BarPosition] = [.top, .bottom]
@@ -42,10 +35,9 @@ class TilingWMConfigurator {
 
         do {
             try updated.write(toFile: configPath, atomically: true, encoding: .utf8)
-            print("[Barik] Updated AeroSpace gaps (active: \(aerospaceGapKey(for: position)) = \(barSize), others = \(defaultGap))")
             reloadAeroSpace()
         } catch {
-            print("[Barik] Failed to write AeroSpace config: \(error)")
+            // Silent failure - user can't act on this from console
         }
     }
 
@@ -153,7 +145,6 @@ class TilingWMConfigurator {
         } else if FileManager.default.fileExists(atPath: aerospacePathLocal) {
             path = aerospacePathLocal
         } else {
-            print("[Barik] AeroSpace binary not found")
             return
         }
 
@@ -164,9 +155,8 @@ class TilingWMConfigurator {
         do {
             try task.run()
             task.waitUntilExit()
-            print("[Barik] AeroSpace config reloaded")
         } catch {
-            print("[Barik] Failed to reload AeroSpace: \(error)")
+            // Silent failure
         }
     }
 
@@ -182,7 +172,6 @@ class TilingWMConfigurator {
         } else if FileManager.default.fileExists(atPath: yabaiPathLocal) {
             path = yabaiPathLocal
         } else {
-            print("[Barik] Yabai not found")
             return
         }
 
@@ -199,11 +188,9 @@ class TilingWMConfigurator {
             checkTask.waitUntilExit()
 
             if checkTask.terminationStatus != 0 {
-                print("[Barik] Yabai is not running")
                 return
             }
         } catch {
-            print("[Barik] Failed to check Yabai status: \(error)")
             return
         }
 
@@ -225,9 +212,8 @@ class TilingWMConfigurator {
         do {
             try task.run()
             task.waitUntilExit()
-            print("[Barik] Configured Yabai external_bar to \(topPadding):\(bottomPadding)")
         } catch {
-            print("[Barik] Failed to configure Yabai: \(error)")
+            // Silent failure
         }
     }
 

@@ -7,10 +7,23 @@
     "?%@?" : {
       "shouldTranslate" : false
     },
+    "%@: %lld%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld%3$@"
+          }
+        }
+      }
+    },
     "%lld" : {
       "shouldTranslate" : false
     },
     "~/.barik-config.toml" : {
+
+    },
+    "AeroSpace path" : {
 
     },
     "ALL_DAY" : {
@@ -138,10 +151,16 @@
         }
       }
     },
+    "Auto-detect" : {
+
+    },
     "Blur: %lld" : {
 
     },
     "Bottom" : {
+
+    },
+    "Box" : {
 
     },
     "Channel: %@" : {
@@ -520,7 +539,13 @@
         }
       }
     },
+    "Horizontal" : {
+
+    },
     "Horizontal padding: %lldpx" : {
+
+    },
+    "Leave empty for auto-detection" : {
 
     },
     "Light" : {
@@ -653,6 +678,9 @@
     "Open Config File" : {
 
     },
+    "Popup style" : {
+
+    },
     "Position" : {
 
     },
@@ -783,7 +811,19 @@
     "Show background panel" : {
 
     },
+    "Show calendar events" : {
+
+    },
+    "Show percentage" : {
+
+    },
+    "Show space key" : {
+
+    },
     "Show widget backgrounds" : {
+
+    },
+    "Show window title" : {
 
     },
     "Signal strength: %@" : {
@@ -1541,6 +1581,9 @@
         }
       }
     },
+    "Vertical" : {
+
+    },
     "What's new" : {
       "localizations" : {
         "ar" : {
@@ -1668,7 +1711,7 @@
     "Widget spacing: %lldpx" : {
 
     },
-    "Widget-specific settings (battery, time, spaces) must be configured in the config file." : {
+    "Yabai path" : {
 
     }
   },
