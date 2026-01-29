@@ -287,6 +287,9 @@
         }
       }
     },
+    "Connected" : {
+
+    },
     "Dark" : {
 
     },
@@ -538,6 +541,9 @@
           }
         }
       }
+    },
+    "Hide widgets already shown in macOS menu bar" : {
+
     },
     "Horizontal" : {
 
@@ -811,7 +817,16 @@
     "Show background panel" : {
 
     },
+    "Show battery" : {
+
+    },
     "Show calendar events" : {
+
+    },
+    "Show clock" : {
+
+    },
+    "Show network" : {
 
     },
     "Show percentage" : {
@@ -949,6 +964,9 @@
           }
         }
       }
+    },
+    "Sound Settings..." : {
+
     },
     "System" : {
 
