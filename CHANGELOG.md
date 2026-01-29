@@ -4,6 +4,10 @@
 
 - Multi-screen support: bar displays on all monitors with per-display workspaces
 - Auto-configure AeroSpace/Yabai gaps per-monitor to respect Barik's space
+- Added MediaRemote adapter for universal media detection (works with any media app, not just Apple Music/Spotify)
+- Now Playing widget now uses notification-based updates instead of polling (more efficient)
+- Fixed JSON number parsing for track identifiers
+- Added app name caching to reduce filesystem I/O
 
 ## 0.5.1
 

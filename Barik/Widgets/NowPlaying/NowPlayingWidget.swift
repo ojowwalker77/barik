@@ -11,13 +11,13 @@ struct NowPlayingWidget: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            if let song = playingManager.nowPlaying {
+            if let song = playingManager.nowPlaying, song.state == .playing {
                 // Hidden view for measuring the intrinsic width.
                 MeasurableNowPlayingContent(song: song) { measuredWidth in
                     if animatedWidth == 0 {
                         animatedWidth = measuredWidth
                     } else if animatedWidth != measuredWidth {
-                        withAnimation(.smooth) {
+                        withAnimation(.easeOut(duration: 0.15)) {
                             animatedWidth = measuredWidth
                         }
                     }
@@ -54,7 +54,7 @@ struct NowPlayingContent: View {
     let song: NowPlayingSong
     @ObservedObject var configManager = ConfigManager.shared
     var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
-    
+
     var body: some View {
         Group {
             if foregroundHeight < 38 {
@@ -113,7 +113,7 @@ struct VisibleNowPlayingContent: View {
     var body: some View {
         NowPlayingContent(song: song)
             .frame(width: width, height: 38)
-            .animation(.smooth(duration: 0.1), value: song)
+            .animation(.easeOut(duration: 0.08), value: song)
             .transition(.blurReplace)
     }
 }
@@ -121,27 +121,28 @@ struct VisibleNowPlayingContent: View {
 // MARK: - Album Art View
 
 /// A view that displays the album art with a fade animation and a pause indicator if needed.
+/// Supports both NSImage (from MediaRemote) and URL (from AppleScript fallback).
 struct AlbumArtView: View {
     let song: NowPlayingSong
 
     var body: some View {
         ZStack {
-            FadeAnimatedCachedImage(
-                url: song.albumArtURL,
-                targetSize: CGSize(width: 20, height: 20)
-            )
-            .frame(width: 20, height: 20)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .scaleEffect(song.state == .paused ? 0.9 : 1)
-            .brightness(song.state == .paused ? -0.3 : 0)
-
-            if song.state == .paused {
-                Image(systemName: "pause.fill")
-                    .foregroundColor(.icon)
-                    .transition(.blurReplace)
+            // Prefer NSImage from MediaRemote, fall back to URL
+            if let image = song.albumArtImage {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 20, height: 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
+                FadeAnimatedCachedImage(
+                    url: song.albumArtURL,
+                    targetSize: CGSize(width: 20, height: 20)
+                )
+                .frame(width: 20, height: 20)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
             }
         }
-        .animation(.smooth(duration: 0.1), value: song.state == .paused)
     }
 }
 
@@ -160,14 +161,18 @@ struct SongTextView: View {
                 Text(song.title)
                     .font(.system(size: 11))
                     .fontWeight(.medium)
-                    .padding(.trailing, 2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(song.artist)
                     .opacity(0.8)
                     .font(.system(size: 10))
-                    .padding(.trailing, 2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             } else {
                 Text(song.artist + " — " + song.title)
                     .font(.system(size: 12))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
         // Disable animations for text changes.
