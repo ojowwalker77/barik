@@ -49,6 +49,8 @@ class MenuBarPopup {
         let displayID = screen.displayID
         guard let panel = panels[displayID] else { return }
 
+        let position = ConfigManager.shared.config.experimental.foreground.position
+
         // Calculate position relative to screen origin
         let relativeX = rect.midX - screen.frame.origin.x
 
@@ -83,7 +85,24 @@ class MenuBarPopup {
             hidingPanel.hideTimer = nil
         }
 
-        let screenBounds = ScreenBounds(width: screen.frame.width, originX: screen.frame.origin.x)
+        let screenBounds = ScreenBounds(
+            width: screen.frame.width,
+            height: screen.frame.height,
+            originX: screen.frame.origin.x,
+            originY: screen.frame.origin.y,
+            position: position
+        )
+
+        // Position popup horizontally
+        let popupView = AnyView(
+            ZStack {
+                MenuBarPopupView(screenBounds: screenBounds) {
+                    content()
+                }
+                .position(x: relativeX)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        )
 
         if panel.isKeyWindow {
             NotificationCenter.default.post(
@@ -93,17 +112,7 @@ class MenuBarPopup {
                 / 1000.0
             let duration = isContentChange ? baseDuration / 2 : baseDuration
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                panel.contentView = NSHostingView(
-                    rootView:
-                        ZStack {
-                            MenuBarPopupView(screenBounds: screenBounds) {
-                                content()
-                            }
-                            .position(x: relativeX)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .id(UUID())
-                )
+                panel.contentView = NSHostingView(rootView: popupView.id(UUID()))
                 panel.makeKeyAndOrderFront(nil)
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(
@@ -111,16 +120,7 @@ class MenuBarPopup {
                 }
             }
         } else {
-            panel.contentView = NSHostingView(
-                rootView:
-                    ZStack {
-                        MenuBarPopupView(screenBounds: screenBounds) {
-                            content()
-                        }
-                        .position(x: relativeX)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            )
+            panel.contentView = NSHostingView(rootView: popupView)
             panel.makeKeyAndOrderFront(nil)
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
@@ -186,5 +186,8 @@ class MenuBarPopup {
 
 struct ScreenBounds {
     let width: CGFloat
+    let height: CGFloat
     let originX: CGFloat
+    let originY: CGFloat
+    let position: BarPosition
 }

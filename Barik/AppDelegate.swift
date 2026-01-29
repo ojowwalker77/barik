@@ -9,7 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showFatalConfigError(message: error)
             return
         }
-        
+
         // Show "What's New" banner if the app version is outdated
         if !VersionChecker.isLatestVersion() {
             VersionChecker.updateVersionFile()
@@ -18,10 +18,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     name: Notification.Name("ShowWhatsNewBanner"), object: nil)
             }
         }
-        
+
         // Configure tiling WMs to respect Barik's space
-        let barHeight = Int(ConfigManager.shared.config.experimental.foreground.resolveHeight())
-        TilingWMConfigurator.configureOnLaunch(barHeight: barHeight)
+        // Note: Bottom position adds extra padding for window shadows.
+        // To fully disable shadows: SIP disabled + yabai `yabai -m config window_shadow off`
+        let foregroundConfig = ConfigManager.shared.config.experimental.foreground
+        var barSize = Int(foregroundConfig.resolveHeight())
+        if foregroundConfig.position == .bottom {
+            barSize += 15  // Extra space for window shadows
+        }
+        TilingWMConfigurator.configureOnLaunch(barSize: barSize, position: foregroundConfig.position)
 
         MenuBarPopup.setup()
         setupPanels()
@@ -47,16 +53,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             activeDisplayIDs.insert(displayID)
             let screenFrame = screen.frame
 
+            // Panel always uses full screen frame for horizontal bar
+            let panelFrame = screenFrame
+
             setupPanel(
                 in: &backgroundPanels,
                 for: displayID,
-                frame: screenFrame,
+                frame: panelFrame,
                 level: Int(CGWindowLevelForKey(.desktopWindow)),
                 hostingRootView: AnyView(BackgroundView()))
             setupPanel(
                 in: &menuBarPanels,
                 for: displayID,
-                frame: screenFrame,
+                frame: panelFrame,
                 level: Int(CGWindowLevelForKey(.backstopMenu)),
                 hostingRootView: AnyView(MenuBarView(monitorName: screen.localizedName)))
         }

@@ -7,6 +7,7 @@ struct MenuBarPopupView<Content: View>: View {
 
     @ObservedObject var configManager = ConfigManager.shared
     var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
+    var position: BarPosition { screenBounds?.position ?? configManager.config.experimental.foreground.position }
 
     @State private var contentHeight: CGFloat = 0
     @State private var viewFrame: CGRect = .zero
@@ -31,12 +32,30 @@ struct MenuBarPopupView<Content: View>: View {
         }
     }
 
+    private var alignment: Alignment {
+        switch position {
+        case .top: return .topTrailing
+        case .bottom: return .bottomTrailing
+        }
+    }
+
+    private var edgePadding: Edge.Set {
+        switch position {
+        case .top: return .top
+        case .bottom: return .bottom
+        }
+    }
+
+    private var paddingValue: CGFloat {
+        foregroundHeight + 5
+    }
+
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: alignment) {
             content
                 .background(Color.black)
                 .cornerRadius(((1.0 - animationValue) * 1) + 40)
-                .padding(.top, foregroundHeight + 5)
+                .padding(edgePadding, paddingValue)
                 .offset(x: computedOffset, y: computedYOffset)
                 .shadow(radius: 30)
                 .blur(radius: (1.0 - (0.1 + 0.9 * animationValue)) * 20)
@@ -153,7 +172,12 @@ struct MenuBarPopupView<Content: View>: View {
     }
 
     var computedYOffset: CGFloat {
-        return viewFrame.height / 2
+        switch position {
+        case .top:
+            return viewFrame.height / 2
+        case .bottom:
+            return -viewFrame.height / 2
+        }
     }
 }
 
