@@ -1,11 +1,17 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "?%@?" : {
       "shouldTranslate" : false
     },
     "%lld" : {
       "shouldTranslate" : false
+    },
+    "~/.barik-config.toml" : {
+
     },
     "ALL_DAY" : {
       "extractionState" : "manual",
@@ -132,6 +138,12 @@
         }
       }
     },
+    "Blur: %lld" : {
+
+    },
+    "Bottom" : {
+
+    },
     "Channel: %@" : {
       "localizations" : {
         "ar" : {
@@ -255,6 +267,9 @@
           }
         }
       }
+    },
+    "Dark" : {
+
     },
     "EMPTY_EVENTS" : {
       "extractionState" : "manual",
@@ -505,6 +520,12 @@
         }
       }
     },
+    "Horizontal padding: %lldpx" : {
+
+    },
+    "Light" : {
+
+    },
     "Noise: %lld" : {
       "localizations" : {
         "ar" : {
@@ -628,6 +649,12 @@
           }
         }
       }
+    },
+    "Open Config File" : {
+
+    },
+    "Position" : {
+
     },
     "RSSI: %lld" : {
       "localizations" : {
@@ -753,6 +780,12 @@
         }
       }
     },
+    "Show background panel" : {
+
+    },
+    "Show widget backgrounds" : {
+
+    },
     "Signal strength: %@" : {
       "localizations" : {
         "ar" : {
@@ -876,6 +909,12 @@
           }
         }
       }
+    },
+    "System" : {
+
+    },
+    "Theme" : {
+
     },
     "TODAY" : {
       "extractionState" : "manual",
@@ -1126,6 +1165,9 @@
           }
         }
       }
+    },
+    "Top" : {
+
     },
     "Update" : {
       "localizations" : {
@@ -1622,6 +1664,12 @@
           }
         }
       }
+    },
+    "Widget spacing: %lldpx" : {
+
+    },
+    "Widget-specific settings (battery, time, spaces) must be configured in the config file." : {
+
     }
   },
   "version" : "1.0"

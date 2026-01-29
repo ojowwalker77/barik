@@ -328,24 +328,27 @@ struct ForegroundConfig: Decodable {
 struct WidgetBackgroundConfig: Decodable {
     let displayed: Bool
     let blur: Material
-    
+    let blurRaw: Int
+
     init() {
         self.displayed = false
         self.blur = .regular
+        self.blurRaw = 3
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         displayed = try container.decodeIfPresent(Bool.self, forKey: .displayed) ?? false
-        
-        var materialIndex = try container.decodeIfPresent(Int.self, forKey: .blur) ?? 1
+
+        var materialIndex = try container.decodeIfPresent(Int.self, forKey: .blur) ?? 3
         if materialIndex < 1 {
             materialIndex = 1
         } else if materialIndex > 6 {
             materialIndex = 6
         }
-        
+
+        blurRaw = materialIndex
         blur = [.ultraThin, .thin, .regular, .thick, .ultraThick, .bar][materialIndex - 1]
     }
 
@@ -358,27 +361,30 @@ struct BackgroundConfig: Decodable {
     let displayed: Bool
     let height: BackgroundForegroundHeight
     let blur: Material
+    let blurRaw: Int
     let black: Bool
 
     init() {
         self.displayed = true
         self.height = .barikDefault
         self.blur = .regular
+        self.blurRaw = 3
         self.black = false
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         displayed = try container.decodeIfPresent(Bool.self, forKey: .displayed) ?? true
         height = try container.decodeIfPresent(BackgroundForegroundHeight.self, forKey: .height) ?? .barikDefault
-        
-        var materialIndex = try container.decodeIfPresent(Int.self, forKey: .blur) ?? 1
+
+        var materialIndex = try container.decodeIfPresent(Int.self, forKey: .blur) ?? 3
         if materialIndex < 1 {
             materialIndex = 1
         } else if materialIndex > 7 {
             materialIndex = 7
         }
-        
+
+        blurRaw = materialIndex
         blur = [.ultraThin, .thin, .regular, .thick, .ultraThick, .bar, .bar][materialIndex - 1]
         self.black = materialIndex == 7
     }

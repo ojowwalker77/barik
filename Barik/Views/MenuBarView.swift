@@ -19,9 +19,16 @@ struct MenuBarView: View {
                 .none
             }
 
-        let items = configManager.config.rootToml.widgets.displayed
         let position = configManager.config.experimental.foreground.position
         let padding = configManager.config.experimental.foreground.horizontalPadding
+
+        // Hide system widgets when bar is at bottom (already in macOS top menu bar)
+        let systemWidgetsToHide: Set<String> = position == .bottom
+            ? ["default.network", "default.battery", "default.time"]
+            : []
+        let items = configManager.config.rootToml.widgets.displayed.filter {
+            !systemWidgetsToHide.contains($0.id)
+        }
 
         let alignment: Alignment = switch position {
         case .top: .top
@@ -82,6 +89,9 @@ struct MenuBarView: View {
 
         case "system-banner":
             SystemBannerWidget()
+
+        case "default.settings":
+            SettingsWidget()
 
         default:
             Text("?\(item.id)?").foregroundColor(.red)

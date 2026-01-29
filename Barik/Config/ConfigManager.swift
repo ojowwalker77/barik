@@ -51,14 +51,23 @@ final class ConfigManager: ObservableObject {
             let rootToml = try decoder.decode(RootToml.self, from: content)
             if Thread.isMainThread {
                 self.config = Config(rootToml: rootToml)
+                NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
             } else {
                 DispatchQueue.main.async {
                     self.config = Config(rootToml: rootToml)
+                    NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
                 }
             }
         } catch {
-            initError = "Error parsing TOML file: \(error.localizedDescription)"
+            let errorMessage = "Error parsing TOML file: \(error.localizedDescription)"
             print("Error when parsing TOML file:", error)
+            if Thread.isMainThread {
+                self.initError = errorMessage
+            } else {
+                DispatchQueue.main.async {
+                    self.initError = errorMessage
+                }
+            }
         }
     }
 
@@ -138,6 +147,44 @@ final class ConfigManager: ObservableObject {
         do {
             let currentText = try String(contentsOfFile: path, encoding: .utf8)
             let updatedText = updatedTOMLString(
+                original: currentText, key: key, newValue: newValue)
+            try updatedText.write(
+                toFile: path, atomically: false, encoding: .utf8)
+            DispatchQueue.main.async {
+                self.parseConfigFile(at: path)
+            }
+        } catch {
+            print("Error updating config:", error)
+        }
+    }
+
+    func updateConfigValue(key: String, newValue: Bool) {
+        guard let path = configFilePath else {
+            print("Config file path is not set")
+            return
+        }
+        do {
+            let currentText = try String(contentsOfFile: path, encoding: .utf8)
+            let updatedText = updatedTOMLBool(
+                original: currentText, key: key, newValue: newValue)
+            try updatedText.write(
+                toFile: path, atomically: false, encoding: .utf8)
+            DispatchQueue.main.async {
+                self.parseConfigFile(at: path)
+            }
+        } catch {
+            print("Error updating config:", error)
+        }
+    }
+
+    func updateConfigValue(key: String, newValue: Int) {
+        guard let path = configFilePath else {
+            print("Config file path is not set")
+            return
+        }
+        do {
+            let currentText = try String(contentsOfFile: path, encoding: .utf8)
+            let updatedText = updatedTOMLInt(
                 original: currentText, key: key, newValue: newValue)
             try updatedText.write(
                 toFile: path, atomically: false, encoding: .utf8)
@@ -230,6 +277,182 @@ final class ConfigManager: ObservableObject {
             }
             if !updatedAtLeastOnce {
                 newLines.append("\(key) = \"\(newValue)\"")
+            }
+            return newLines.joined(separator: "\n")
+        }
+    }
+
+    private func updatedTOMLBool(
+        original: String, key: String, newValue: Bool
+    ) -> String {
+        let boolString = newValue ? "true" : "false"
+
+        if key.contains(".") {
+            let components = key.split(separator: ".").map(String.init)
+            guard components.count >= 2 else {
+                return original
+            }
+
+            let tablePath = components.dropLast().joined(separator: ".")
+            let actualKey = components.last!
+
+            let tableHeader = "[\(tablePath)]"
+            let lines = original.components(separatedBy: "\n")
+            var newLines: [String] = []
+            var insideTargetTable = false
+            var updatedKey = false
+            var foundTable = false
+
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("[") && trimmed.hasSuffix("]") {
+                    if insideTargetTable && !updatedKey {
+                        newLines.append("\(actualKey) = \(boolString)")
+                        updatedKey = true
+                    }
+                    if trimmed == tableHeader {
+                        foundTable = true
+                        insideTargetTable = true
+                    } else {
+                        insideTargetTable = false
+                    }
+                    newLines.append(line)
+                } else {
+                    if insideTargetTable && !updatedKey {
+                        let pattern =
+                            "^\(NSRegularExpression.escapedPattern(for: actualKey))\\s*="
+                        if line.range(of: pattern, options: .regularExpression)
+                            != nil
+                        {
+                            newLines.append("\(actualKey) = \(boolString)")
+                            updatedKey = true
+                            continue
+                        }
+                    }
+                    newLines.append(line)
+                }
+            }
+
+            if foundTable && insideTargetTable && !updatedKey {
+                newLines.append("\(actualKey) = \(boolString)")
+            }
+
+            if !foundTable {
+                newLines.append("")
+                newLines.append("[\(tablePath)]")
+                newLines.append("\(actualKey) = \(boolString)")
+            }
+            return newLines.joined(separator: "\n")
+        } else {
+            let lines = original.components(separatedBy: "\n")
+            var newLines: [String] = []
+            var updatedAtLeastOnce = false
+
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if !trimmed.hasPrefix("#") {
+                    let pattern =
+                        "^\(NSRegularExpression.escapedPattern(for: key))\\s*="
+                    if line.range(of: pattern, options: .regularExpression)
+                        != nil
+                    {
+                        newLines.append("\(key) = \(boolString)")
+                        updatedAtLeastOnce = true
+                        continue
+                    }
+                }
+                newLines.append(line)
+            }
+            if !updatedAtLeastOnce {
+                newLines.append("\(key) = \(boolString)")
+            }
+            return newLines.joined(separator: "\n")
+        }
+    }
+
+    private func updatedTOMLInt(
+        original: String, key: String, newValue: Int
+    ) -> String {
+        let intString = String(newValue)
+
+        if key.contains(".") {
+            let components = key.split(separator: ".").map(String.init)
+            guard components.count >= 2 else {
+                return original
+            }
+
+            let tablePath = components.dropLast().joined(separator: ".")
+            let actualKey = components.last!
+
+            let tableHeader = "[\(tablePath)]"
+            let lines = original.components(separatedBy: "\n")
+            var newLines: [String] = []
+            var insideTargetTable = false
+            var updatedKey = false
+            var foundTable = false
+
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("[") && trimmed.hasSuffix("]") {
+                    if insideTargetTable && !updatedKey {
+                        newLines.append("\(actualKey) = \(intString)")
+                        updatedKey = true
+                    }
+                    if trimmed == tableHeader {
+                        foundTable = true
+                        insideTargetTable = true
+                    } else {
+                        insideTargetTable = false
+                    }
+                    newLines.append(line)
+                } else {
+                    if insideTargetTable && !updatedKey {
+                        let pattern =
+                            "^\(NSRegularExpression.escapedPattern(for: actualKey))\\s*="
+                        if line.range(of: pattern, options: .regularExpression)
+                            != nil
+                        {
+                            newLines.append("\(actualKey) = \(intString)")
+                            updatedKey = true
+                            continue
+                        }
+                    }
+                    newLines.append(line)
+                }
+            }
+
+            if foundTable && insideTargetTable && !updatedKey {
+                newLines.append("\(actualKey) = \(intString)")
+            }
+
+            if !foundTable {
+                newLines.append("")
+                newLines.append("[\(tablePath)]")
+                newLines.append("\(actualKey) = \(intString)")
+            }
+            return newLines.joined(separator: "\n")
+        } else {
+            let lines = original.components(separatedBy: "\n")
+            var newLines: [String] = []
+            var updatedAtLeastOnce = false
+
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if !trimmed.hasPrefix("#") {
+                    let pattern =
+                        "^\(NSRegularExpression.escapedPattern(for: key))\\s*="
+                    if line.range(of: pattern, options: .regularExpression)
+                        != nil
+                    {
+                        newLines.append("\(key) = \(intString)")
+                        updatedAtLeastOnce = true
+                        continue
+                    }
+                }
+                newLines.append(line)
+            }
+            if !updatedAtLeastOnce {
+                newLines.append("\(key) = \(intString)")
             }
             return newLines.joined(separator: "\n")
         }
