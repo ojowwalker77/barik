@@ -57,7 +57,6 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         do {
             try process.run()
         } catch {
-            print("Aerospace error: \(error)")
             return nil
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -74,13 +73,7 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         else {
             return nil
         }
-        let decoder = JSONDecoder()
-        do {
-            return try decoder.decode([AeroSpace].self, from: data)
-        } catch {
-            print("Decode spaces error: \(error)")
-            return nil
-        }
+        return try? JSONDecoder().decode([AeroSpace].self, from: data)
     }
 
     private func fetchWindows() -> [AeroWindow]? {
@@ -92,13 +85,7 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         else {
             return nil
         }
-        let decoder = JSONDecoder()
-        do {
-            return try decoder.decode([AeroWindow].self, from: data)
-        } catch {
-            print("Decode windows error: \(error)")
-            return nil
-        }
+        return try? JSONDecoder().decode([AeroWindow].self, from: data)
     }
 
     private func fetchFocusedSpace() -> AeroSpace? {
@@ -109,29 +96,21 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         else {
             return nil
         }
-        let decoder = JSONDecoder()
-        do {
-            return try decoder.decode([AeroSpace].self, from: data).first
-        } catch {
-            print("Decode focused space error: \(error)")
-            return nil
-        }
+        return try? JSONDecoder().decode([AeroSpace].self, from: data).first
     }
 
     private func fetchFocusedWindow() -> AeroWindow? {
-        guard
-            let data = runAerospaceCommand(arguments: [
-                "list-windows", "--focused", "--json",
-            ])
-        else {
+        guard let data = runAerospaceCommand(arguments: [
+            "list-windows", "--focused", "--json",
+        ]),
+              !data.isEmpty else {
             return nil
         }
-        let decoder = JSONDecoder()
-        do {
-            return try decoder.decode([AeroWindow].self, from: data).first
-        } catch {
-            print("Decode focused window error: \(error)")
+        // Aerospace returns plain text "No window is focused" when no window is focused
+        // Check if it starts with '[' (valid JSON array)
+        guard data.first == UInt8(ascii: "[") else {
             return nil
         }
+        return try? JSONDecoder().decode([AeroWindow].self, from: data).first
     }
 }
