@@ -1,17 +1,35 @@
 import Foundation
 
 struct MenuBarAutoHide {
-    static func setAutoHide(_ enabled: Bool) {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
-        task.arguments = ["write", "NSGlobalDomain", "_HIHideMenuBar", "-bool", enabled ? "true" : "false"]
-        try? task.run()
-        task.waitUntilExit()
+    private static var lastState: Bool?
 
-        // Attempt refresh without logout
-        let dock = Process()
-        dock.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        dock.arguments = ["Dock"]
-        try? dock.run()
+    static func setAutoHide(_ enabled: Bool) {
+        // Skip if state unchanged
+        if lastState == enabled {
+            return
+        }
+        lastState = enabled
+
+        print("[Barik] MenuBarAutoHide: Setting auto-hide to \(enabled)")
+
+        let script = """
+        tell application "System Events"
+            tell dock preferences to set autohide menu bar to \(enabled)
+        end tell
+        """
+
+        guard let appleScript = NSAppleScript(source: script) else {
+            print("[Barik] MenuBarAutoHide: Failed to create AppleScript")
+            return
+        }
+
+        var error: NSDictionary?
+        appleScript.executeAndReturnError(&error)
+
+        if let error = error {
+            print("[Barik] MenuBarAutoHide: AppleScript error: \(error)")
+        } else {
+            print("[Barik] MenuBarAutoHide: Success")
+        }
     }
 }
