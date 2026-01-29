@@ -62,6 +62,9 @@ final class ConfigManager: ObservableObject {
                     NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
                 }
             }
+
+            // Migrate config if needed (add missing default widgets)
+            migrateConfigIfNeeded(config: newConfig, path: path)
         } catch {
             let errorMessage = "Error parsing TOML file: \(error.localizedDescription)"
             print("Error when parsing TOML file:", error)
@@ -72,6 +75,76 @@ final class ConfigManager: ObservableObject {
                     self.initError = errorMessage
                 }
             }
+        }
+    }
+
+    private func migrateConfigIfNeeded(config: Config, path: String) {
+        let displayedWidgets = config.rootToml.widgets.displayed.map { $0.id }
+
+        // Add default.bluetooth if missing
+        if !displayedWidgets.contains("default.bluetooth") {
+            addWidgetToDisplayed(widget: "default.bluetooth", afterWidget: "spacer", path: path)
+        }
+    }
+
+    private func addWidgetToDisplayed(widget: String, afterWidget: String?, path: String) {
+        do {
+            var content = try String(contentsOfFile: path, encoding: .utf8)
+            let lines = content.components(separatedBy: "\n")
+            var newLines: [String] = []
+            var insideDisplayed = false
+            var inserted = false
+            var bracketDepth = 0
+
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+                // Detect start of displayed array
+                if trimmed.hasPrefix("displayed") && trimmed.contains("[") {
+                    insideDisplayed = true
+                    bracketDepth = 1
+                    newLines.append(line)
+                    continue
+                }
+
+                if insideDisplayed && !inserted {
+                    // Count brackets
+                    for char in trimmed {
+                        if char == "[" { bracketDepth += 1 }
+                        if char == "]" { bracketDepth -= 1 }
+                    }
+
+                    // Insert after the target widget
+                    if let after = afterWidget, trimmed.contains("\"\(after)\"") {
+                        newLines.append(line)
+                        // Determine indentation from current line
+                        let indent = String(line.prefix(while: { $0.isWhitespace }))
+                        newLines.append("\(indent)\"\(widget)\",")
+                        inserted = true
+                        continue
+                    }
+
+                    // If we hit closing bracket without finding target, insert before it
+                    if bracketDepth == 0 {
+                        insideDisplayed = false
+                        if !inserted {
+                            let indent = "    " // default indent
+                            newLines.append("\(indent)\"\(widget)\",")
+                            inserted = true
+                        }
+                    }
+                }
+
+                newLines.append(line)
+            }
+
+            if inserted {
+                content = newLines.joined(separator: "\n")
+                try content.write(toFile: path, atomically: true, encoding: .utf8)
+                print("[ConfigManager] Migrated config: added \(widget) to displayed widgets")
+            }
+        } catch {
+            print("[ConfigManager] Failed to migrate config: \(error)")
         }
     }
 
@@ -89,6 +162,7 @@ final class ConfigManager: ObservableObject {
             displayed = [ # widgets on menu bar
                 "default.spaces",
                 "spacer",
+                "default.bluetooth",
                 "default.network",
                 "default.battery",
                 "divider",
