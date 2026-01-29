@@ -21,7 +21,7 @@ struct SettingsPopup: View {
 
             // Tab content
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                     switch selectedTab {
                     case 0: GeneralTab(configManager: configManager)
                     case 1: BarTab(configManager: configManager)
@@ -73,7 +73,7 @@ struct GeneralTab: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             SettingsSection(title: "Appearance") {
                 HStack {
                     Text("Theme")
@@ -100,6 +100,18 @@ struct GeneralTab: View {
                     .frame(width: 120)
                 }
             }
+
+            if position == .bottom {
+                SettingsSection(title: "Duplicate Widgets") {
+                    Text("Hide widgets already shown in macOS menu bar")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Toggle("Show clock", isOn: showClockBinding)
+                    Toggle("Show battery", isOn: showBatteryBinding)
+                    Toggle("Show network", isOn: showNetworkBinding)
+                }
+            }
         }
     }
 
@@ -114,6 +126,39 @@ struct GeneralTab: View {
         Binding(
             get: { position.rawValue },
             set: { ConfigManager.shared.updateConfigValue(key: "experimental.foreground.position", newValue: $0) }
+        )
+    }
+
+    private var showClock: Bool {
+        configManager.config.experimental.foreground.showClock
+    }
+
+    private var showBattery: Bool {
+        configManager.config.experimental.foreground.showBattery
+    }
+
+    private var showNetwork: Bool {
+        configManager.config.experimental.foreground.showNetwork
+    }
+
+    private var showClockBinding: Binding<Bool> {
+        Binding(
+            get: { showClock },
+            set: { ConfigManager.shared.updateConfigValue(key: "experimental.foreground.show-clock", newValue: $0) }
+        )
+    }
+
+    private var showBatteryBinding: Binding<Bool> {
+        Binding(
+            get: { showBattery },
+            set: { ConfigManager.shared.updateConfigValue(key: "experimental.foreground.show-battery", newValue: $0) }
+        )
+    }
+
+    private var showNetworkBinding: Binding<Bool> {
+        Binding(
+            get: { showNetwork },
+            set: { ConfigManager.shared.updateConfigValue(key: "experimental.foreground.show-network", newValue: $0) }
         )
     }
 }
@@ -153,7 +198,7 @@ struct BarTab: View {
     @State private var paddingValue: Double = 25
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             SettingsSection(title: "Background Panel") {
                 Toggle(isOn: backgroundBinding) {
                     Text("Show background panel")
@@ -269,7 +314,7 @@ struct WidgetsTab: View {
     @State private var showWindowTitle = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             SettingsSection(title: "Battery") {
                 Toggle("Show percentage", isOn: $showPercentage)
                     .onChange(of: showPercentage) { _, newValue in
@@ -372,6 +417,7 @@ struct WidgetsTab: View {
                         )
                     }
             }
+
         }
         .onAppear { loadFromConfig() }
     }
@@ -420,6 +466,7 @@ struct WidgetsTab: View {
                 showWindowTitle = showTitle
             }
         }
+
     }
 }
 
@@ -476,7 +523,7 @@ struct AdvancedTab: View {
     @State private var yabaiPath: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             SettingsSection(title: "Tiling Window Managers") {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("AeroSpace path")
@@ -565,18 +612,18 @@ struct SettingsSection<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.headline)
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 content()
             }
-            .padding(12)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.primary.opacity(0.05))
-            .cornerRadius(8)
+            .background(Color.primary.opacity(0.04))
+            .cornerRadius(10)
         }
     }
 }

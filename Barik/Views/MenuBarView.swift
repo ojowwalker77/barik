@@ -21,13 +21,18 @@ struct MenuBarView: View {
 
         let position = configManager.config.experimental.foreground.position
         let padding = configManager.config.experimental.foreground.horizontalPadding
+        let foreground = configManager.config.experimental.foreground
 
-        // Hide system widgets when bar is at bottom (already in macOS top menu bar)
-        let systemWidgetsToHide: Set<String> = position == .bottom
-            ? ["default.network", "default.battery", "default.time"]
-            : []
+        // Build set of widgets to hide based on config flags
+        let widgetsToHide: Set<String> = {
+            var set = Set<String>()
+            if !foreground.showClock { set.insert("default.time") }
+            if !foreground.showBattery { set.insert("default.battery") }
+            if !foreground.showNetwork { set.insert("default.network") }
+            return set
+        }()
         let items = configManager.config.rootToml.widgets.displayed.filter {
-            !systemWidgetsToHide.contains($0.id)
+            !widgetsToHide.contains($0.id)
         }
 
         let alignment: Alignment = switch position {
@@ -77,6 +82,9 @@ struct MenuBarView: View {
         case "default.nowplaying":
             NowPlayingWidget()
                 .environmentObject(config)
+
+        case "default.bluetooth":
+            BluetoothWidget()
 
         case "spacer":
             Spacer().frame(minWidth: 50, maxWidth: .infinity)

@@ -273,6 +273,9 @@ struct ForegroundConfig: Decodable {
     let horizontalPadding: CGFloat
     let widgetsBackground: WidgetBackgroundConfig
     let spacing: CGFloat
+    let showClock: Bool
+    let showBattery: Bool
+    let showNetwork: Bool
 
     init() {
         self.height = .barikDefault
@@ -281,6 +284,9 @@ struct ForegroundConfig: Decodable {
         self.horizontalPadding = Constants.menuBarHorizontalPadding
         self.widgetsBackground = WidgetBackgroundConfig()
         self.spacing = 15
+        self.showClock = true
+        self.showBattery = true
+        self.showNetwork = true
     }
 
     init(from decoder: Decoder) throws {
@@ -291,6 +297,9 @@ struct ForegroundConfig: Decodable {
         horizontalPadding = try container.decodeIfPresent(CGFloat.self, forKey: .horizontalPadding) ?? Constants.menuBarHorizontalPadding
         widgetsBackground = try container.decodeIfPresent(WidgetBackgroundConfig.self, forKey: .widgetsBackground) ?? WidgetBackgroundConfig()
         spacing = try container.decodeIfPresent(CGFloat.self, forKey: .spacing) ?? 15
+        showClock = try container.decodeIfPresent(Bool.self, forKey: .showClock) ?? true
+        showBattery = try container.decodeIfPresent(Bool.self, forKey: .showBattery) ?? true
+        showNetwork = try container.decodeIfPresent(Bool.self, forKey: .showNetwork) ?? true
     }
 
     enum CodingKeys: String, CodingKey {
@@ -300,6 +309,9 @@ struct ForegroundConfig: Decodable {
         case horizontalPadding = "horizontal-padding"
         case widgetsBackground = "widgets-background"
         case spacing
+        case showClock = "show-clock"
+        case showBattery = "show-battery"
+        case showNetwork = "show-network"
     }
 
     func resolveHeight() -> CGFloat {
