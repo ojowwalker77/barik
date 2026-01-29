@@ -49,12 +49,16 @@ final class ConfigManager: ObservableObject {
             let content = try String(contentsOfFile: path, encoding: .utf8)
             let decoder = TOMLDecoder()
             let rootToml = try decoder.decode(RootToml.self, from: content)
+            let newConfig = Config(rootToml: rootToml)
+            let position = newConfig.experimental.foreground.position
+            MenuBarAutoHide.setAutoHide(position == .top)
+
             if Thread.isMainThread {
-                self.config = Config(rootToml: rootToml)
+                self.config = newConfig
                 NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
             } else {
                 DispatchQueue.main.async {
-                    self.config = Config(rootToml: rootToml)
+                    self.config = newConfig
                     NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
                 }
             }
