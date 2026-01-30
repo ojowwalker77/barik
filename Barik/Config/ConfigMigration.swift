@@ -110,6 +110,9 @@ enum ConfigMigration {
             )
         }
 
+        // Migrate flat displayed array to zoned layout
+        config.zonedLayout = migrateToZonedLayout(displayed: root.widgets.displayed)
+
         // Widget-specific settings
         for (widgetId, settings) in root.widgets.others {
             config.widgets.settings[widgetId] = BarikConfig.WidgetSettings(
@@ -151,6 +154,92 @@ enum ConfigMigration {
         }
 
         return config
+    }
+
+    /// Migrate flat displayed array to zoned layout
+    private static func migrateToZonedLayout(displayed: [TomlWidgetItem]) -> ZonedLayout {
+        var left: [ZonedWidgetItem] = []
+        var center: [ZonedWidgetItem] = []
+        var right: [ZonedWidgetItem] = []
+
+        // Special cases: spaces goes left, time goes center, rest goes right
+        // Spacers stay within the zone they're in (used to push widgets apart)
+        var currentZone: Zone = .left
+        var leftOrder = 0
+        var centerOrder = 0
+        var rightOrder = 0
+
+        for item in displayed {
+            let widgetId = item.id
+            let definition = WidgetRegistry.widget(for: widgetId)
+
+            // Determine zone based on widget type
+            let targetZone: Zone
+            if widgetId == "default.spaces" {
+                targetZone = .left
+            } else if widgetId == "default.time" {
+                targetZone = .center
+            } else if widgetId == "spacer" {
+                // Spacer: if we haven't seen center content yet, it's a left-center divider
+                // After spacer, switch to center if we're in left
+                if currentZone == .left {
+                    currentZone = .center
+                    continue // Skip adding spacer, it's just a zone divider
+                } else if currentZone == .center {
+                    currentZone = .right
+                    continue // Skip adding spacer, it's just a zone divider
+                }
+                targetZone = currentZone
+            } else if widgetId == "divider" {
+                // Dividers stay in current zone
+                targetZone = currentZone
+            } else {
+                // Use default zone from widget definition, or current zone
+                targetZone = definition?.defaultZone ?? currentZone
+            }
+
+            // Create zoned widget item
+            var inlineConfig: [String: AnyCodableValue]? = nil
+            if !item.inlineParams.isEmpty {
+                inlineConfig = item.inlineParams.mapValues { AnyCodableValue(from: $0) }
+            }
+
+            let priority = definition?.defaultPriority ?? 50
+
+            let zonedItem = ZonedWidgetItem(
+                widgetId: widgetId,
+                instanceId: UUID(),
+                order: 0, // Will be set below
+                priority: priority,
+                inlineConfig: inlineConfig
+            )
+
+            // Add to appropriate zone
+            switch targetZone {
+            case .left:
+                var itemWithOrder = zonedItem
+                itemWithOrder.order = leftOrder
+                left.append(itemWithOrder)
+                leftOrder += 1
+            case .center:
+                var itemWithOrder = zonedItem
+                itemWithOrder.order = centerOrder
+                center.append(itemWithOrder)
+                centerOrder += 1
+            case .right:
+                var itemWithOrder = zonedItem
+                itemWithOrder.order = rightOrder
+                right.append(itemWithOrder)
+                rightOrder += 1
+            }
+        }
+
+        // If migration produced empty zones, use defaults
+        if left.isEmpty && center.isEmpty && right.isEmpty {
+            return .default
+        }
+
+        return ZonedLayout(left: left, center: center, right: right)
     }
 
     private static func convertDimension(_ dim: BackgroundForegroundHeight) -> BarikConfig.DimensionValue {

@@ -1,14 +1,27 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "?%@?" : {
       "shouldTranslate" : false
     },
-    "..." : {
-
-    },
     "%lld" : {
       "shouldTranslate" : false
+    },
+    "%lld widget%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld widget%2$@"
+          }
+        }
+      }
+    },
+    "All widgets are in use" : {
+
     },
     "ALL_DAY" : {
       "extractionState" : "manual",
@@ -135,10 +148,7 @@
         }
       }
     },
-    "Available Items" : {
-
-    },
-    "Bar Position" : {
+    "AVAILABLE WIDGETS" : {
 
     },
     "Bluetooth" : {
@@ -280,16 +290,16 @@
     "Customize Toolbar" : {
 
     },
-    "Default Set" : {
+    "Default Layout" : {
 
     },
     "Done" : {
 
     },
-    "Drag items to the toolbar above, or drag items off the toolbar to remove them." : {
+    "Drag items to the toolbar above, or drag them off to remove." : {
 
     },
-    "Drag the default set to restore defaults" : {
+    "Drag to toolbar or click to reset" : {
 
     },
     "Edit Config File..." : {
@@ -544,6 +554,9 @@
         }
       }
     },
+    "Hidden Widgets" : {
+
+    },
     "Noise: %lld" : {
       "localizations" : {
         "ar" : {
@@ -668,7 +681,10 @@
         }
       }
     },
-    "Position" : {
+    "Position:" : {
+
+    },
+    "RESTORE" : {
 
     },
     "RSSI: %lld" : {
@@ -1673,6 +1689,9 @@
           }
         }
       }
+    },
+    "ZONES" : {
+
     }
   },
   "version" : "1.0"

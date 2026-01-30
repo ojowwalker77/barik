@@ -5,6 +5,7 @@ import SwiftUI
 struct BarikConfig: Codable, Equatable {
     var theme: Theme = .system
     var widgets: WidgetLayout = .init()
+    var zonedLayout: ZonedLayout = .default
     var foreground: ForegroundSettings = .init()
     var background: BackgroundSettings = .init()
     var yabai: YabaiSettings = .init()

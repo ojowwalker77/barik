@@ -34,6 +34,14 @@ final class ConfigStore {
         notifyObservers()
     }
 
+    /// Update zoned layout in memory
+    func updateZonedLayout(left: [ZonedWidgetItem], center: [ZonedWidgetItem], right: [ZonedWidgetItem]) {
+        config.zonedLayout.left = left
+        config.zonedLayout.center = center
+        config.zonedLayout.right = right
+        notifyObservers()
+    }
+
     // MARK: - Legacy Key Updates (in-memory sync with ConfigManager)
 
     /// Update config using legacy dotted key path (e.g., "experimental.foreground.position")
