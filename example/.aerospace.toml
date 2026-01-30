@@ -1,0 +1,14 @@
+# Barik AeroSpace configuration example
+# Add top gap to leave space for the bar
+
+[gaps]
+inner.horizontal = 5
+inner.vertical = 5
+outer.left = 10
+outer.right = 10
+outer.top = 55       # Space for Barik bar
+outer.bottom = 10
+
+# If using Barik at bottom instead:
+# outer.top = 10
+# outer.bottom = 55

@@ -1,0 +1,23 @@
+# Barik configuration example
+# Copy to ~/.config/barik/config.toml or ~/.barik-config.toml
+
+theme = "system" # system, light, dark
+
+[widgets]
+displayed = [
+    "default.spaces",
+    "spacer",
+    "default.nowplaying",
+    "default.bluetooth",
+    "default.network",
+    "default.battery",
+    "divider",
+    "default.time"
+]
+
+[background]
+enabled = true
+
+[experimental.foreground]
+position = "top" # top, bottom
+horizontal-padding = 25
