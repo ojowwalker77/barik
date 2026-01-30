@@ -4,9 +4,13 @@ struct BluetoothWidget: View {
     @StateObject private var bluetoothManager = BluetoothManager()
     @State private var rect: CGRect = CGRect()
 
+    /// When true, show the widget even if no device is connected (for customization mode)
+    var forceShow: Bool = false
+
     var body: some View {
         Group {
             if let device = bluetoothManager.activeBluetoothAudio {
+                // Active device - show full widget
                 HStack(spacing: 4) {
                     Image(systemName: "headphones")
                         .font(.system(size: 12))
@@ -35,6 +39,15 @@ struct BluetoothWidget: View {
                         BluetoothPopup(device: device)
                     }
                 }
+            } else if forceShow {
+                // No device but forced to show (customization mode) - show placeholder
+                HStack(spacing: 4) {
+                    Image(systemName: "headphones")
+                        .font(.system(size: 12))
+                    Text("Bluetooth")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(.secondary.opacity(0.6))
             }
         }
     }
