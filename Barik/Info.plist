@@ -4,5 +4,32 @@
 <dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Barik needs to control System Events to toggle menu bar auto-hide based on bar position.</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Barik Widget</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.barik.widget</string>
+			<key>UTTypeTagSpecification</key>
+			<dict/>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Barik Default Widget Set</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.barik.widget.defaultset</string>
+			<key>UTTypeTagSpecification</key>
+			<dict/>
+		</dict>
+	</array>
 </dict>
 </plist>

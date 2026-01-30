@@ -1,30 +1,14 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
-    },
     "?%@?" : {
       "shouldTranslate" : false
     },
-    "%@: %lld%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$lld%3$@"
-          }
-        }
-      }
+    "..." : {
+
     },
     "%lld" : {
       "shouldTranslate" : false
-    },
-    "~/.barik-config.toml" : {
-
-    },
-    "AeroSpace path" : {
-
     },
     "ALL_DAY" : {
       "extractionState" : "manual",
@@ -151,16 +135,19 @@
         }
       }
     },
-    "Auto-detect" : {
+    "Available Items" : {
 
     },
-    "Blur: %lld" : {
+    "Bar Position" : {
+
+    },
+    "Bluetooth" : {
 
     },
     "Bottom" : {
 
     },
-    "Box" : {
+    "Cancel" : {
 
     },
     "Channel: %@" : {
@@ -290,7 +277,22 @@
     "Connected" : {
 
     },
-    "Dark" : {
+    "Customize Toolbar" : {
+
+    },
+    "Default Set" : {
+
+    },
+    "Done" : {
+
+    },
+    "Drag items to the toolbar above, or drag items off the toolbar to remove them." : {
+
+    },
+    "Drag the default set to restore defaults" : {
+
+    },
+    "Edit Config File..." : {
 
     },
     "EMPTY_EVENTS" : {
@@ -542,21 +544,6 @@
         }
       }
     },
-    "Hide widgets already shown in macOS menu bar" : {
-
-    },
-    "Horizontal" : {
-
-    },
-    "Horizontal padding: %lldpx" : {
-
-    },
-    "Leave empty for auto-detection" : {
-
-    },
-    "Light" : {
-
-    },
     "Noise: %lld" : {
       "localizations" : {
         "ar" : {
@@ -680,12 +667,6 @@
           }
         }
       }
-    },
-    "Open Config File" : {
-
-    },
-    "Popup style" : {
-
     },
     "Position" : {
 
@@ -814,33 +795,6 @@
         }
       }
     },
-    "Show background panel" : {
-
-    },
-    "Show battery" : {
-
-    },
-    "Show calendar events" : {
-
-    },
-    "Show clock" : {
-
-    },
-    "Show network" : {
-
-    },
-    "Show percentage" : {
-
-    },
-    "Show space key" : {
-
-    },
-    "Show widget backgrounds" : {
-
-    },
-    "Show window title" : {
-
-    },
     "Signal strength: %@" : {
       "localizations" : {
         "ar" : {
@@ -966,12 +920,6 @@
       }
     },
     "Sound Settings..." : {
-
-    },
-    "System" : {
-
-    },
-    "Theme" : {
 
     },
     "TODAY" : {
@@ -1225,6 +1173,9 @@
       }
     },
     "Top" : {
+
+    },
+    "Undo" : {
 
     },
     "Update" : {
@@ -1599,9 +1550,6 @@
         }
       }
     },
-    "Vertical" : {
-
-    },
     "What's new" : {
       "localizations" : {
         "ar" : {
@@ -1725,12 +1673,6 @@
           }
         }
       }
-    },
-    "Widget spacing: %lldpx" : {
-
-    },
-    "Yabai path" : {
-
     }
   },
   "version" : "1.0"

@@ -26,7 +26,7 @@ class BluetoothManager: ObservableObject {
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: AudioObjectPropertySelector(kAudioHardwarePropertyDefaultOutputDevice),
             mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
-            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMaster)
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
         )
 
         listenerBlock = { [weak self] _, _ in
@@ -49,7 +49,7 @@ class BluetoothManager: ObservableObject {
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: AudioObjectPropertySelector(kAudioHardwarePropertyDefaultOutputDevice),
             mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
-            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMaster)
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
         )
 
         AudioObjectRemovePropertyListenerBlock(
@@ -86,7 +86,7 @@ class BluetoothManager: ObservableObject {
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: AudioObjectPropertySelector(kAudioHardwarePropertyDefaultOutputDevice),
             mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
-            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMaster)
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
         )
         AudioObjectGetPropertyData(
             AudioObjectID(kAudioObjectSystemObject),
@@ -105,7 +105,7 @@ class BluetoothManager: ObservableObject {
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: AudioObjectPropertySelector(kAudioDevicePropertyTransportType),
             mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
-            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMaster)
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
         )
         AudioObjectGetPropertyData(
             deviceID,
@@ -119,14 +119,14 @@ class BluetoothManager: ObservableObject {
     }
 
     private func getDeviceName(deviceID: AudioDeviceID) -> String {
-        var propertySize = UInt32(MemoryLayout<CFString>.size)
+        var propertySize = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: AudioObjectPropertySelector(kAudioDevicePropertyDeviceNameCFString),
             mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
-            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMaster)
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
         )
-        var result: CFString = "" as CFString
-        AudioObjectGetPropertyData(
+        var result: Unmanaged<CFString>?
+        let status = AudioObjectGetPropertyData(
             deviceID,
             &propertyAddress,
             0,
@@ -134,6 +134,9 @@ class BluetoothManager: ObservableObject {
             &propertySize,
             &result
         )
-        return result as String
+        guard status == noErr, let cfString = result?.takeUnretainedValue() else {
+            return "Unknown"
+        }
+        return cfString as String
     }
 }

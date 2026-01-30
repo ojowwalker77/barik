@@ -8,11 +8,24 @@ final class ConfigManager: ObservableObject {
     @Published private(set) var config = Config()
     @Published private(set) var initError: String?
 
+    /// The new typed config (available via ConfigStore.shared)
+    private(set) var typedConfig: BarikConfig = .init()
+
     private var fileWatchSource: DispatchSourceFileSystemObject?
     private var fileDescriptor: CInt = -1
     private var configFilePath: String?
 
     private init() {
+        // Run migration and initialize ConfigStore
+        let result = ConfigMigration.migrateIfNeeded()
+        typedConfig = result.config
+        ConfigStore.shared.initialize(with: result.config)
+
+        // Observe ConfigStore changes to keep legacy Config in sync
+        ConfigStore.shared.onChange { [weak self] newConfig in
+            self?.typedConfig = newConfig
+        }
+
         loadOrCreateConfigIfNeeded()
     }
 
@@ -626,5 +639,91 @@ final class ConfigManager: ObservableObject {
             merged[key] = value
         }
         return merged
+    }
+
+    /// Update the widget display order in the config
+    func updateWidgetOrder(_ widgetIds: [String]) {
+        // Update ConfigStore in-memory state
+        ConfigStore.shared.updateWidgetOrder(widgetIds: widgetIds)
+
+        // Write directly to file for immediate file watcher compatibility
+        guard let path = configFilePath else { return }
+        do {
+            let content = try String(contentsOfFile: path, encoding: .utf8)
+            let updatedContent = updatedTOMLWidgetOrder(original: content, widgetIds: widgetIds)
+            try updatedContent.write(toFile: path, atomically: true, encoding: .utf8)
+            // Force immediate config reload without waiting for file watcher
+            parseConfigFile(at: path)
+        } catch {
+            print("Error updating widget order:", error)
+        }
+    }
+
+    private func updatedTOMLWidgetOrder(original: String, widgetIds: [String]) -> String {
+        let lines = original.components(separatedBy: "\n")
+        var newLines: [String] = []
+        var bracketDepth = 0
+        var skipUntilCloseBracket = false
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            // Detect start of displayed array
+            if trimmed.hasPrefix("displayed") && trimmed.contains("[") {
+                bracketDepth = 0
+                bracketDepth += countBracketsIgnoringQuotes(in: trimmed)
+
+                // Check if the array is on a single line
+                if bracketDepth == 0 {
+                    // Single line array, replace it entirely
+                    let widgetStrings = widgetIds.map { "\"\($0)\"" }.joined(separator: ", ")
+                    newLines.append("displayed = [\(widgetStrings)]")
+                } else {
+                    // Multi-line array, write opening and start skipping
+                    newLines.append("displayed = [")
+                    skipUntilCloseBracket = true
+                }
+                continue
+            }
+
+            if skipUntilCloseBracket {
+                // Count brackets (ignoring those inside quotes) to find the end
+                bracketDepth += countBracketsIgnoringQuotes(in: trimmed)
+
+                if bracketDepth == 0 {
+                    // Write the new widget list and close bracket
+                    for (index, widgetId) in widgetIds.enumerated() {
+                        let comma = index < widgetIds.count - 1 ? "," : ""
+                        newLines.append("    \"\(widgetId)\"\(comma)")
+                    }
+                    newLines.append("]")
+                    skipUntilCloseBracket = false
+                }
+                continue
+            }
+
+            newLines.append(line)
+        }
+
+        return newLines.joined(separator: "\n")
+    }
+
+    /// Count bracket balance while ignoring brackets inside quoted strings
+    private func countBracketsIgnoringQuotes(in text: String) -> Int {
+        var depth = 0
+        var inString = false
+        var prevChar: Character = "\0"
+
+        for char in text {
+            if char == "\"" && prevChar != "\\" {
+                inString.toggle()
+            } else if !inString {
+                if char == "[" { depth += 1 }
+                if char == "]" { depth -= 1 }
+            }
+            prevChar = char
+        }
+
+        return depth
     }
 }
