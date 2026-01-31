@@ -86,9 +86,13 @@ jobs:
 
     steps:
       - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SHA256: ${{ needs.build.outputs.sha256 }}
         run: |
           curl -X POST \
             -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token ${{ secrets.HOMEBREW_TAP_TOKEN }}" \
+            -H "Authorization: token ${TAP_TOKEN}" \
             https://api.github.com/repos/ojowwalker77/homebrew-barik/dispatches \
-            -d '{"event_type":"update-cask","client_payload":{"version":"${{ needs.build.outputs.version }}","sha256":"${{ needs.build.outputs.sha256 }}"}}'
+            -d "{\"event_type\":\"update-cask\",\"client_payload\":{\"version\":\"${VERSION}\",\"sha256\":\"${SHA256}\"}}"
