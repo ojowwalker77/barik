@@ -47,6 +47,20 @@ This is a fork of [**barik**](https://github.com/mocki-toki/barik) by [**mocki-t
 
 ## Installation
 
+### Homebrew (recommended)
+
+```bash
+brew tap ojowwalker77/barik
+brew install --cask barik
+```
+
+To update:
+```bash
+brew upgrade barik
+```
+
+### Manual
+
 Download from [Releases](https://github.com/ojowwalker77/barik/releases), unzip, and move to Applications.
 
 ### Setup
