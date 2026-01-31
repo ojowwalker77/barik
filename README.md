@@ -63,6 +63,14 @@ brew upgrade barik
 
 Download from [Releases](https://github.com/ojowwalker77/barik/releases), unzip, and move to Applications.
 
+### First Launch
+
+macOS may block the app since it's not notarized. To open:
+```bash
+xattr -cr /Applications/Barik.app
+```
+Or right-click the app → Open → Click "Open".
+
 ### Setup
 
 1. _(Optional)_ Install [**yabai**](https://github.com/koekeishiya/yabai) or [**AeroSpace**](https://github.com/nikitabobko/AeroSpace) for workspace support. Configure top padding — [yabai example](https://github.com/ojowwalker77/barik/blob/main/example/.yabairc).

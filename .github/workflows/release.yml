@@ -33,13 +33,10 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Export app
+      - name: Create zip
         run: |
           mkdir -p export
           cp -R build/Barik.xcarchive/Products/Applications/Barik.app export/
-
-      - name: Create zip
-        run: |
           cd export
           zip -r ../Barik.zip Barik.app
           cd ..
@@ -56,12 +53,15 @@ jobs:
 
             ### Installation
 
-            **Download:** Unzip and move to Applications.
-
             **Homebrew:**
             ```bash
             brew tap ojowwalker77/barik
             brew install --cask barik
+            ```
+
+            **Manual:** Download Barik.zip, unzip, and move to Applications. Then run:
+            ```bash
+            xattr -cr /Applications/Barik.app
             ```
           files: |
             Barik.zip
@@ -74,7 +74,6 @@ jobs:
         run: |
           SHA=$(cat Barik.zip.sha256 | awk '{print $1}')
           echo "SHA256=$SHA" >> $GITHUB_OUTPUT
-          echo "SHA256: $SHA"
 
     outputs:
       sha256: ${{ steps.sha.outputs.SHA256 }}

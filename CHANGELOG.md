@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0
+## 0.6.1
 
 ### Multi-Monitor Support
 - Bar displays on all connected monitors
