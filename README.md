@@ -43,7 +43,7 @@ This is a fork of [**barik**](https://github.com/mocki-toki/barik) by [**mocki-t
 
 ## Requirements
 
-- macOS 14.6+
+- macOS 15.0+
 
 ## Installation
 

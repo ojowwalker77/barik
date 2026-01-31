@@ -339,7 +339,7 @@
 				INFOPLIST_FILE = Barik/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Barik;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "We need this permission for control of third-party media players via an interactive widget";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Barik needs to control System Events to toggle menu bar auto-hide based on bar position.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "We need this permission for displaying calendar events";
 				INFOPLIST_KEY_NSHumanReadableCopyright = Pansy;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location permission for display WiFi network name";
@@ -349,7 +349,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 0.6.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Pansy.Barik;
+				PRODUCT_BUNDLE_IDENTIFIER = jow.Barik;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -378,7 +378,7 @@
 				INFOPLIST_FILE = Barik/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Barik;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "We need this permission for control of third-party media players via an interactive widget";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Barik needs to control System Events to toggle menu bar auto-hide based on bar position.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "We need this permission for displaying calendar events";
 				INFOPLIST_KEY_NSHumanReadableCopyright = Pansy;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location permission for display WiFi network name";
@@ -388,7 +388,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 0.6.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Pansy.Barik;
+				PRODUCT_BUNDLE_IDENTIFIER = jow.Barik;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
