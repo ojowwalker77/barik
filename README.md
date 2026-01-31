@@ -31,8 +31,6 @@
   <video src="https://github.com/user-attachments/assets/33cfd2c2-e961-4d04-8012-664db0113d4f">
 </div>
 
-https://github.com/user-attachments/assets/d3799e24-c077-4c6a-a7da-a1f2eee1a07f
-
 <br>
 
 ## Credits
@@ -73,17 +71,23 @@ Or right-click the app → Open → Click "Open".
 
 ### Setup
 
-1. _(Optional)_ Install [**yabai**](https://github.com/koekeishiya/yabai) or [**AeroSpace**](https://github.com/nikitabobko/AeroSpace) for workspace support. Configure top padding — [yabai example](https://github.com/ojowwalker77/barik/blob/main/example/.yabairc).
-
-2. Hide the system menu bar: **System Settings → Control Center → Automatically hide and show the menu bar → Always**
-
-3. Uncheck **Desktop & Dock → Show items → On Desktop**
-
-4. Launch **barik** and add to login items.
+1. _(Optional)_ Install [**yabai**](https://github.com/koekeishiya/yabai) or [**AeroSpace**](https://github.com/nikitabobko/AeroSpace) for workspace support.
+2. Uncheck **Desktop & Dock → Show items → On Desktop**
+3. Launch **barik** and add to login items.
 
 <br>
 
-## Configuration
+## Configuration & Customization
+
+Click the **gear icon** to customize your toolbar:
+
+- Drag widgets to add/remove/reorder
+- Widgets are organized into left, center, and right zones
+- Center zone stays screen-centered
+
+https://github.com/user-attachments/assets/986436b8-17b1-4ca2-8191-549baa3eabd4
+
+<br>
 
 Config file: `~/.config/barik/config.toml` or `~/.barik-config.toml`
 
@@ -134,30 +138,12 @@ path = "/path/to/aerospace"
 
 <br>
 
-## Customization
-
-Click the **gear icon** to customize your toolbar:
-
-- Drag widgets to add/remove/reorder
-- Widgets are organized into left, center, and right zones
-- Center zone stays screen-centered
-
-<br>
-
 ## Now Playing
 
 Supports any media app through MediaRemote framework. Tested with:
 - Spotify
 - Apple Music
 - Browser media
-
-<br>
-
-## FAQ
-
-**Where are menu items (File, Edit, etc.)?**
-
-Not supported yet. Use [Raycast](https://www.raycast.com/) or move mouse to top to reveal system menu bar.
 
 <br>
 
