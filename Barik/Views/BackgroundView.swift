@@ -27,10 +27,15 @@ struct BackgroundView: View {
 
         if configManager.config.background.enabled {
             GeometryReader { geometry in
+                let isBlack = configManager.config.background.mode == .black
                 spacer(geometry)
-                    .background(configManager.config.background.blurMaterial)
+                    .background(
+                        isBlack
+                            ? AnyShapeStyle(Color.black)
+                            : AnyShapeStyle(configManager.config.background.blurMaterial)
+                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-                    .id("blur")
+                    .id(isBlack ? "black" : "blur")
             }
         }
     }

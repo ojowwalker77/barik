@@ -112,6 +112,9 @@ enum ConfigTOMLEncoder {
         if config.background.blur != 3 {
             lines.append("blur = \(config.background.blur)")
         }
+        if config.background.mode != .blur {
+            lines.append("mode = \"\(config.background.mode.rawValue)\"")
+        }
         lines.append("")
 
         // Foreground (only if non-default)

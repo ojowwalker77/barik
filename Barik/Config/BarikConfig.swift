@@ -189,9 +189,15 @@ struct BarikConfig: Codable, Equatable {
     }
 
     struct BackgroundSettings: Codable, Equatable {
+        enum Mode: String, Codable {
+            case blur
+            case black
+        }
+
         var enabled: Bool = true
         var height: DimensionValue = .barikDefault
         var blur: Int = 3
+        var mode: Mode = .blur
 
         func resolveHeight() -> CGFloat? {
             switch height {

@@ -28,12 +28,17 @@ final class ConfigManager: ObservableObject {
         configFilePath = newPath.path
 
         let legacyPath = homePath.appendingPathComponent(".barik-config.toml")
-        if FileManager.default.fileExists(atPath: legacyPath.path) {
-            try? FileManager.default.removeItem(at: legacyPath)
-        }
-
         if FileManager.default.fileExists(atPath: newPath.path) {
             loadConfig(from: newPath)
+        } else if FileManager.default.fileExists(atPath: legacyPath.path) {
+            do {
+                try FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
+                try FileManager.default.moveItem(at: legacyPath, to: newPath)
+                loadConfig(from: newPath)
+            } catch {
+                initError = "Error migrating legacy config: \(error.localizedDescription)"
+                return
+            }
         } else {
             do {
                 try FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
@@ -129,6 +134,28 @@ final class ConfigManager: ObservableObject {
         updated.zonedLayout.left = left
         updated.zonedLayout.center = center
         updated.zonedLayout.right = right
+        saveConfig(updated)
+    }
+
+    func updateLayout(
+        left: [ZonedWidgetItem],
+        center: [ZonedWidgetItem],
+        right: [ZonedWidgetItem],
+        widgetIds: [String]
+    ) {
+        var updated = config
+        updated.zonedLayout.left = left
+        updated.zonedLayout.center = center
+        updated.zonedLayout.right = right
+
+        let existingById = Dictionary(grouping: updated.widgets.displayed, by: { $0.widgetId })
+        updated.widgets.displayed = widgetIds.map { widgetId in
+            if let item = existingById[widgetId]?.first {
+                return item
+            }
+            return BarikConfig.WidgetItem(widgetId: widgetId)
+        }
+
         saveConfig(updated)
     }
 
