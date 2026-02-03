@@ -11,8 +11,6 @@ struct ToolbarCustomizationSheet: View {
             // Header
             header
 
-            Divider()
-
             Form {
                 ZoneLayoutSection(engine: engine)
                 AvailableWidgetsSection(engine: engine)
@@ -21,8 +19,9 @@ struct ToolbarCustomizationSheet: View {
             }
             .formStyle(.grouped)
             .padding(.horizontal, 12)
+            .groupBoxStyle(PlainGroupBoxStyle())
         }
-        .frame(width: 500, height: 560)
+        .frame(width: 640, height: 700)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -30,9 +29,9 @@ struct ToolbarCustomizationSheet: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Customize Toolbar")
-                    .font(.title3.weight(.semibold))
+                    .font(.title2.weight(.semibold))
                 Text("Drag items to the toolbar above, or drag them off to remove.")
-                    .font(.callout)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
@@ -69,7 +68,7 @@ struct ToolbarCustomizationSheet: View {
             .controlSize(.small)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, 12)
     }
 }
 
@@ -85,7 +84,7 @@ struct ZoneLayoutSection: View {
                 ZoneRow(zone: .center, engine: engine)
                 ZoneRow(zone: .right, engine: engine)
             }
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
     }
 }
@@ -102,9 +101,9 @@ struct ZoneRow: View {
 
     private var zoneColor: Color {
         switch zone {
-        case .left: return .blue
-        case .center: return .green
-        case .right: return .orange
+        case .left: return Color.blue.opacity(0.35)
+        case .center: return Color.green.opacity(0.35)
+        case .right: return Color.orange.opacity(0.35)
         }
     }
 
@@ -128,13 +127,15 @@ struct ZoneRow: View {
                             .frame(width: max(6, geo.size.width * min(fillPercentage, 1.0)))
                     }
                 }
-                .frame(width: 110, height: 8)
+                .frame(width: 110, height: 6)
 
                 Text("\(widgetCount) widget\(widgetCount == 1 ? "" : "s")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .frame(width: 68, alignment: .trailing)
             }
         }
+        .font(.callout)
     }
 }
 
@@ -165,7 +166,6 @@ struct AvailableWidgetsSection: View {
                     .padding(.vertical, 20)
                     Spacer()
                 }
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .controlBackgroundColor)))
             } else {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     ForEach(availableWidgets) { definition in
@@ -208,11 +208,7 @@ struct WidgetCard: View {
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.9) : Color.clear)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(isHovered ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear, lineWidth: 1)
+                .fill(isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.25) : Color.clear)
         )
         .opacity(isDragging ? 0.4 : 1.0)
         .scaleEffect(isDragging ? 0.95 : 1.0)
@@ -272,7 +268,7 @@ struct RestoreSection: View {
         GroupBox("Restore") {
             HStack(spacing: 12) {
                 Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -298,11 +294,7 @@ struct RestoreSection: View {
             .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.9) : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(isHovered ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear, lineWidth: 1)
+                    .fill(isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.25) : Color.clear)
             )
             .opacity(isDragging ? 0.5 : 1.0)
             .scaleEffect(isDragging ? 0.98 : 1.0)
@@ -345,7 +337,7 @@ struct ConfigSection: View {
                     .buttonStyle(.link)
 
                     Text(ConfigManager.shared.configFilePathForDisplay)
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.footnote.monospaced())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -398,7 +390,7 @@ struct BarPositionPicker: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 120)
-            .controlSize(.small)
+            .controlSize(.mini)
         }
     }
 
@@ -426,5 +418,19 @@ struct DefaultSetDragPreview: View {
         .foregroundStyle(.white)
         .cornerRadius(8)
         .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+    }
+}
+
+// MARK: - Styles
+
+private struct PlainGroupBoxStyle: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            configuration.label
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            configuration.content
+        }
+        .padding(.vertical, 10)
     }
 }
