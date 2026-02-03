@@ -36,32 +36,31 @@ class HidingPanel: NSPanel, NSWindowDelegate {
 class MenuBarPopup {
     static var lastContentIdentifier: String? = nil
     static var lastDisplayID: CGDirectDisplayID? = nil
+    private static let minPopupSize = CGSize(width: 160, height: 120)
 
     static func show<Content: View>(
         rect: CGRect, id: String, @ViewBuilder content: @escaping () -> Content
     ) {
-        print("[DEBUG] MenuBarPopup.show called - id: \(id), rect: \(rect)")
+        debugLog("[DEBUG] MenuBarPopup.show called - id: \(id), rect: \(rect)")
 
         // Find which screen the widget rect is on
-        let targetScreen = NSScreen.screens.first { screen in
-            screen.frame.contains(CGPoint(x: rect.midX, y: rect.midY))
-        } ?? NSScreen.main
+        let targetScreen = screenForRect(rect) ?? NSScreen.main
 
         guard let screen = targetScreen else {
-            print("[DEBUG] No screen found!")
+            debugLog("[DEBUG] No screen found!")
             return
         }
         let displayID = screen.displayID
-        print("[DEBUG] Screen: \(screen.frame), displayID: \(displayID)")
+        debugLog("[DEBUG] Screen: \(screen.frame), displayID: \(displayID)")
 
         guard let panel = panels[displayID] else {
-            print("[DEBUG] No panel for displayID: \(displayID), available: \(panels.keys)")
+            debugLog("[DEBUG] No panel for displayID: \(displayID), available: \(panels.keys)")
             return
         }
-        print("[DEBUG] Panel found, frame: \(panel.frame), level: \(panel.level.rawValue)")
+        debugLog("[DEBUG] Panel found, frame: \(panel.frame), level: \(panel.level.rawValue)")
 
         let position = ConfigManager.shared.config.experimental.foreground.position
-        print("[DEBUG] Position: \(position)")
+        debugLog("[DEBUG] Position: \(position)")
 
         // Hide other screen popups
         for (otherID, otherPanel) in panels where otherID != displayID {
@@ -94,35 +93,36 @@ class MenuBarPopup {
             hidingPanel.hideTimer = nil
         }
 
-        // Position the panel at the correct location
-        let popupSize = CGSize(width: 400, height: 500)
-
-        // Panel X: centered on widget, clamped to screen
-        let panelX = max(screen.frame.minX + 10,
-                         min(rect.midX - popupSize.width / 2,
-                             screen.frame.maxX - popupSize.width - 10))
-
-        // rect is in flipped coords (origin top-left), convert to macOS (origin bottom-left)
-        let screenHeight = screen.frame.height
-        let widgetTopMacOS = screen.frame.origin.y + screenHeight - rect.minY
-        let widgetBottomMacOS = screen.frame.origin.y + screenHeight - rect.maxY
-
-        // Panel Y: above widget for bottom bar, below widget for top bar
-        let panelY: CGFloat = switch position {
-        case .top: widgetBottomMacOS - popupSize.height - 5   // Popup below widget
-        case .bottom: widgetTopMacOS + 5                       // Popup above widget
-        }
-        print("[DEBUG] widgetTopMacOS: \(widgetTopMacOS), widgetBottomMacOS: \(widgetBottomMacOS)")
-
-        let panelFrame = CGRect(origin: CGPoint(x: panelX, y: panelY), size: popupSize)
-        panel.setFrame(panelFrame, display: false)
-        print("[DEBUG] Panel frame set to: \(panelFrame)")
+        var lastMeasuredSize: CGSize = .zero
 
         let popupView = AnyView(
-            MenuBarPopupView(position: position) {
+            MenuBarPopupView(position: position, onSizeChange: { newSize in
+                guard abs(newSize.width - lastMeasuredSize.width) > 1
+                        || abs(newSize.height - lastMeasuredSize.height) > 1 else {
+                    return
+                }
+                lastMeasuredSize = newSize
+                applyPopupFrame(
+                    panel: panel,
+                    screen: screen,
+                    rect: rect,
+                    size: newSize,
+                    position: position
+                )
+            }) {
                 content()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        )
+
+        let hostedView = NSHostingView(rootView: popupView.fixedSize())
+        let fittingSize = hostedView.fittingSize
+        lastMeasuredSize = fittingSize
+        applyPopupFrame(
+            panel: panel,
+            screen: screen,
+            rect: rect,
+            size: fittingSize,
+            position: position
         )
 
         if panel.isKeyWindow {
@@ -141,10 +141,10 @@ class MenuBarPopup {
                 }
             }
         } else {
-            print("[DEBUG] Showing popup panel (not key)")
+            debugLog("[DEBUG] Showing popup panel (not key)")
             panel.contentView = NSHostingView(rootView: popupView)
             panel.makeKeyAndOrderFront(nil)
-            print("[DEBUG] makeKeyAndOrderFront called, isVisible: \(panel.isVisible), isKey: \(panel.isKeyWindow)")
+            debugLog("[DEBUG] makeKeyAndOrderFront called, isVisible: \(panel.isVisible), isKey: \(panel.isKeyWindow)")
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
                     name: .willShowWindow, object: nil)
@@ -194,4 +194,87 @@ class MenuBarPopup {
             panels.removeValue(forKey: displayID)
         }
     }
+
+    private static func screenForRect(_ rect: CGRect) -> NSScreen? {
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(CGPoint(x: rect.midX, y: rect.midY)) }) {
+            return screen
+        }
+
+        // Fallback: try offsetting by each screen origin (rect might be in window coords)
+        for screen in NSScreen.screens {
+            let adjusted = rect.offsetBy(dx: screen.frame.minX, dy: screen.frame.minY)
+            if screen.frame.contains(CGPoint(x: adjusted.midX, y: adjusted.midY)) {
+                return screen
+            }
+        }
+
+        return nil
+    }
+
+    private static func applyPopupFrame(
+        panel: NSPanel,
+        screen: NSScreen,
+        rect: CGRect,
+        size: CGSize,
+        position: BarPosition
+    ) {
+        let visibleFrame = screen.visibleFrame
+        let popupSize = clampedPopupSize(
+            size: size,
+            visibleFrame: visibleFrame,
+            minSize: minPopupSize
+        )
+
+        // Panel X: centered on widget, clamped to screen visible frame
+        let desiredX = rect.midX - popupSize.width / 2
+        let panelX = clamp(
+            desiredX,
+            min: visibleFrame.minX + 10,
+            max: visibleFrame.maxX - popupSize.width - 10
+        )
+
+        // rect is already in global screen coords (origin bottom-left)
+        let widgetTopMacOS = rect.maxY
+        let widgetBottomMacOS = rect.minY
+
+        // Panel Y: above widget for bottom bar, below widget for top bar
+        let desiredY: CGFloat = switch position {
+        case .top: widgetBottomMacOS - popupSize.height - 5   // Popup below widget
+        case .bottom: widgetTopMacOS + 5                       // Popup above widget
+        }
+        let panelY = clamp(
+            desiredY,
+            min: visibleFrame.minY + 10,
+            max: visibleFrame.maxY - popupSize.height - 10
+        )
+        debugLog("[DEBUG] widgetTopMacOS: \(widgetTopMacOS), widgetBottomMacOS: \(widgetBottomMacOS)")
+
+        let panelFrame = CGRect(origin: CGPoint(x: panelX, y: panelY), size: popupSize)
+        panel.setFrame(panelFrame, display: false)
+        debugLog("[DEBUG] Panel frame set to: \(panelFrame)")
+    }
+
+    private static func clampedPopupSize(
+        size: CGSize,
+        visibleFrame: CGRect,
+        minSize: CGSize
+    ) -> CGSize {
+        let maxWidth = max(minSize.width, visibleFrame.width - 20)
+        let maxHeight = max(minSize.height, visibleFrame.height - 20)
+        let width = min(max(size.width, minSize.width), maxWidth)
+        let height = min(max(size.height, minSize.height), maxHeight)
+        return CGSize(width: width, height: height)
+    }
+
+    private static func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
+        Swift.min(Swift.max(value, min), max)
+    }
+
+    #if DEBUG
+    private static func debugLog(_ message: @autoclosure () -> String) {
+        print(message())
+    }
+    #else
+    private static func debugLog(_ message: @autoclosure () -> String) {}
+    #endif
 }

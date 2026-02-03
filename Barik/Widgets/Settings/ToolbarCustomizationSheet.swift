@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Safari-style toolbar customization palette
@@ -374,18 +375,31 @@ struct BottomActionsSection: View {
 
             // Config file button
             HStack {
-                Button {
-                    openConfigFile()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 11))
-                        Text("Edit Config File...")
-                            .font(.system(size: 11))
+                VStack(alignment: .leading, spacing: 4) {
+                    Button {
+                        openConfigFile()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 11))
+                            Text("Edit Config File...")
+                                .font(.system(size: 11))
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+
+                    Text(ConfigManager.shared.configFilePathForDisplay)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .contextMenu {
+                            Button("Copy Path") {
+                                copyConfigPath()
+                            }
+                        }
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
 
                 Spacer()
 
@@ -396,20 +410,14 @@ struct BottomActionsSection: View {
     }
 
     private func openConfigFile() {
-        let homePath = FileManager.default.homeDirectoryForCurrentUser.path
-        let path1 = "\(homePath)/.barik-config.toml"
-        let path2 = "\(homePath)/.config/barik/config.toml"
+        guard let url = ConfigManager.shared.configFileURL else { return }
+        NSWorkspace.shared.open(url)
+    }
 
-        let configPath: String
-        if FileManager.default.fileExists(atPath: path1) {
-            configPath = path1
-        } else if FileManager.default.fileExists(atPath: path2) {
-            configPath = path2
-        } else {
-            configPath = path1
-        }
-
-        NSWorkspace.shared.open(URL(fileURLWithPath: configPath))
+    private func copyConfigPath() {
+        let path = ConfigManager.shared.configFilePathForDisplay
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(path, forType: .string)
     }
 }
 
@@ -464,4 +472,3 @@ struct DefaultSetDragPreview: View {
         .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
     }
 }
-

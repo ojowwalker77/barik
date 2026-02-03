@@ -49,6 +49,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil)
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        let engine = WidgetGridEngine.shared
+        if engine.isCustomizing {
+            if engine.hasUnsavedChanges {
+                engine.finishCustomizing()
+            } else {
+                engine.isCustomizing = false
+            }
+        }
+    }
+
     @objc private func screenParametersDidChange(_ notification: Notification) {
         setupPanels()
     }

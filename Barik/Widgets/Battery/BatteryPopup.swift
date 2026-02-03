@@ -3,6 +3,10 @@ import SwiftUI
 
 struct BatteryPopup: View {
     @StateObject private var batteryManager = BatteryManager()
+    private var batteryConfig: ConfigData {
+        ConfigManager.shared.globalWidgetConfig(for: "default.battery")
+    }
+    private var warningLevel: Int { batteryConfig["warning-level"]?.intValue ?? 30 }
 
     var body: some View {
         ZStack {
@@ -42,13 +46,13 @@ struct BatteryPopup: View {
         if batteryManager.isCharging {
             return .green
         } else {
-            if batteryManager.batteryLevel <= 10 {
-                return .red
-            } else if batteryManager.batteryLevel <= 20 {
+            if batteryManager.isLowPowerMode {
                 return .yellow
-            } else {
-                return .white
             }
+            if batteryManager.batteryLevel <= warningLevel {
+                return .red
+            }
+            return .white
         }
     }
 }

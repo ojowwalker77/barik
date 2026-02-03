@@ -10,6 +10,8 @@ struct BluetoothDevice {
 
 class BluetoothManager: ObservableObject {
     @Published var activeBluetoothAudio: BluetoothDevice?
+    @Published var bluetoothOutputDevices: [BluetoothDevice] = []
+    @Published var currentOutputDeviceID: AudioDeviceID = kAudioDeviceUnknown
 
     private var listenerBlock: AudioObjectPropertyListenerBlock?
 
@@ -62,9 +64,11 @@ class BluetoothManager: ObservableObject {
 
     func updateCurrentDevice() {
         let deviceID = getDefaultOutputDevice()
+        currentOutputDeviceID = deviceID
 
         guard deviceID != kAudioDeviceUnknown else {
             activeBluetoothAudio = nil
+            bluetoothOutputDevices = fetchBluetoothOutputDevices()
             return
         }
 
@@ -78,6 +82,7 @@ class BluetoothManager: ObservableObject {
         } else {
             activeBluetoothAudio = nil
         }
+        bluetoothOutputDevices = fetchBluetoothOutputDevices()
     }
 
     private func getDefaultOutputDevice() -> AudioDeviceID {
@@ -97,6 +102,107 @@ class BluetoothManager: ObservableObject {
             &deviceID
         )
         return deviceID
+    }
+
+    func setDefaultOutputDevice(deviceID: AudioDeviceID) {
+        var deviceID = deviceID
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: AudioObjectPropertySelector(kAudioHardwarePropertyDefaultOutputDevice),
+            mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
+        )
+        let status = AudioObjectSetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            UInt32(MemoryLayout<AudioDeviceID>.size),
+            &deviceID
+        )
+        if status == noErr {
+            DispatchQueue.main.async { [weak self] in
+                self?.updateCurrentDevice()
+            }
+        }
+    }
+
+    private func fetchBluetoothOutputDevices() -> [BluetoothDevice] {
+        var propertySize: UInt32 = 0
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: AudioObjectPropertySelector(kAudioHardwarePropertyDevices),
+            mScope: AudioObjectPropertyScope(kAudioObjectPropertyScopeGlobal),
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
+        )
+        let sizeStatus = AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize
+        )
+        guard sizeStatus == noErr else { return [] }
+
+        let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
+        var deviceIDs = Array(repeating: AudioDeviceID(0), count: deviceCount)
+        let listStatus = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize,
+            &deviceIDs
+        )
+        guard listStatus == noErr else { return [] }
+
+        return deviceIDs.compactMap { deviceID in
+            guard isOutputDevice(deviceID: deviceID) else { return nil }
+            let transportType = getDeviceTransportType(deviceID: deviceID)
+            let isBluetooth = transportType == kAudioDeviceTransportTypeBluetooth ||
+                              transportType == kAudioDeviceTransportTypeBluetoothLE
+            guard isBluetooth else { return nil }
+            let name = getDeviceName(deviceID: deviceID)
+            return BluetoothDevice(name: name, deviceID: deviceID)
+        }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func isOutputDevice(deviceID: AudioDeviceID) -> Bool {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: AudioObjectPropertySelector(kAudioDevicePropertyStreamConfiguration),
+            mScope: AudioObjectPropertyScope(kAudioDevicePropertyScopeOutput),
+            mElement: AudioObjectPropertyElement(kAudioObjectPropertyElementMain)
+        )
+        var propertySize: UInt32 = 0
+        let sizeStatus = AudioObjectGetPropertyDataSize(
+            deviceID,
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize
+        )
+        guard sizeStatus == noErr else { return false }
+
+        let bufferListPointer = UnsafeMutableRawPointer.allocate(
+            byteCount: Int(propertySize),
+            alignment: MemoryLayout<AudioBufferList>.alignment
+        )
+        defer { bufferListPointer.deallocate() }
+
+        let status = AudioObjectGetPropertyData(
+            deviceID,
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize,
+            bufferListPointer
+        )
+        guard status == noErr else { return false }
+
+        let bufferList = bufferListPointer.bindMemory(
+            to: AudioBufferList.self,
+            capacity: 1
+        )
+        let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
+        return buffers.contains { $0.mNumberChannels > 0 }
     }
 
     private func getDeviceTransportType(deviceID: AudioDeviceID) -> UInt32 {

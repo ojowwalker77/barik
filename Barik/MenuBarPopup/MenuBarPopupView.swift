@@ -4,6 +4,7 @@ struct MenuBarPopupView<Content: View>: View {
     let content: Content
     let isPreview: Bool
     let position: BarPosition
+    let onSizeChange: ((CGSize) -> Void)?
 
     @State private var animationValue: Double = 0.01
     @State private var isShowAnimation = false
@@ -16,10 +17,16 @@ struct MenuBarPopupView<Content: View>: View {
     private let willChangeContent = NotificationCenter.default.publisher(
         for: .willChangeContent)
 
-    init(isPreview: Bool = false, position: BarPosition = .top, @ViewBuilder content: () -> Content) {
+    init(
+        isPreview: Bool = false,
+        position: BarPosition = .top,
+        onSizeChange: ((CGSize) -> Void)? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
         self.content = content()
         self.isPreview = isPreview
         self.position = position
+        self.onSizeChange = onSizeChange
         if isPreview {
             _animationValue = State(initialValue: 1.0)
         }
@@ -33,7 +40,27 @@ struct MenuBarPopupView<Content: View>: View {
     }
 
     var body: some View {
-        content
+        let measuredContent = content.background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: PopupSizePreferenceKey.self,
+                    value: proxy.size
+                )
+            }
+        )
+
+        ZStack(alignment: position == .top ? .top : .bottom) {
+            measuredContent
+        }
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity,
+            alignment: position == .top ? .top : .bottom
+        )
+        .onPreferenceChange(PopupSizePreferenceKey.self) { newSize in
+            guard newSize.width > 0, newSize.height > 0 else { return }
+            onSizeChange?(newSize)
+        }
             .background(Color.black)
             .cornerRadius(((1.0 - animationValue) * 1) + 40)
             .shadow(radius: 30)
@@ -110,6 +137,14 @@ struct MenuBarPopupView<Content: View>: View {
             }
             .foregroundStyle(.white)
             .preferredColorScheme(.dark)
+    }
+}
+
+private struct PopupSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
     }
 }
 

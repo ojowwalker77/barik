@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.2-rc
+
+### Popups
+- Auto-size popups to content with live resizing and better screen clamping
+- Align popup content to the bar edge for more accurate anchoring
+- Debug logging only in debug builds
+
+### Battery
+- Battery icon turns yellow in Low Power Mode and red at warning level
+- Battery popup color now mirrors the widget state
+- Power source updates use notifications with a low-frequency fallback timer
+
+### Bluetooth
+- Bluetooth popup lists available Bluetooth output devices
+- Switch audio output devices directly from the popup
+
+### Settings
+- Show the canonical config file path (with copy action) in customization
+- Auto-save customization changes when the app quits
+
 ## 0.6.1
 
 ### Multi-Monitor Support

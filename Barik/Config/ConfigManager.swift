@@ -15,6 +15,15 @@ final class ConfigManager: ObservableObject {
     private var fileDescriptor: CInt = -1
     private var configFilePath: String?
 
+    var configFileURL: URL? {
+        guard let path = configFilePath else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    var configFilePathForDisplay: String {
+        configFilePath ?? "~/.config/barik/config.toml"
+    }
+
     private init() {
         // Run migration and initialize ConfigStore
         let result = ConfigMigration.migrateIfNeeded()

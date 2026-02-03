@@ -11,6 +11,7 @@ struct BatteryWidget: View {
     private var level: Int { batteryManager.batteryLevel }
     private var isCharging: Bool { batteryManager.isCharging }
     private var isPluggedIn: Bool { batteryManager.isPluggedIn }
+    private var isLowPowerMode: Bool { batteryManager.isLowPowerMode }
 
     @State private var rect: CGRect = CGRect()
 
@@ -19,6 +20,7 @@ struct BatteryWidget: View {
             ZStack(alignment: .leading) {
                 BatteryBodyView(mask: false)
                     .opacity(showPercentage ? 0.3 : 0.4)
+                    .foregroundStyle(batteryOutlineColor)
                 BatteryBodyView(mask: true)
                     .clipShape(
                         Rectangle().path(
@@ -64,23 +66,40 @@ struct BatteryWidget: View {
     private var batteryTextColor: Color {
         if isCharging {
             return .foregroundOutsideInvert
-        } else {
-            return level > warningLevel ? .foregroundOutsideInvert : .black
         }
+        if isLowPowerMode {
+            return .black
+        }
+        if level <= warningLevel {
+            return .white
+        }
+        return .foregroundOutsideInvert
     }
 
     private var batteryColor: Color {
         if isCharging {
             return .green
-        } else {
-            if level <= criticalLevel {
-                return .red
-            } else if level <= warningLevel {
-                return .yellow
-            } else {
-                return .icon
-            }
         }
+        if isLowPowerMode {
+            return .yellow
+        }
+        if level <= warningLevel {
+            return .red
+        }
+        return .icon
+    }
+
+    private var batteryOutlineColor: Color {
+        if isCharging {
+            return .foregroundOutsideInvert
+        }
+        if isLowPowerMode {
+            return .yellow
+        }
+        if level <= warningLevel {
+            return .red
+        }
+        return .foregroundOutsideInvert
     }
 }
 
