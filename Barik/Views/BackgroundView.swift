@@ -34,14 +34,10 @@ struct BackgroundView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
                         .id("black")
                 } else {
-                    VisualEffectView(
-                        material: configManager.config.background.blurEffectMaterial,
-                        blendingMode: .behindWindow,
-                        state: .active
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-                    .mask(spacer(geometry))
-                    .id("blur")
+                    spacer(geometry)
+                        .background(configManager.config.background.blurMaterial)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+                        .id("blur")
                 }
             }
         }
