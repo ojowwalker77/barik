@@ -154,9 +154,6 @@
     "Bluetooth" : {
 
     },
-    "Bluetooth Output" : {
-
-    },
     "Bottom" : {
 
     },
@@ -164,6 +161,7 @@
 
     },
     "Channel: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -288,9 +286,6 @@
       }
     },
     "Config" : {
-
-    },
-    "Connected" : {
 
     },
     "Copy Path" : {
@@ -440,6 +435,7 @@
       }
     },
     "Ethernet: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -566,10 +562,8 @@
     "Hidden Widgets" : {
 
     },
-    "No Bluetooth devices found" : {
-
-    },
     "Noise: %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -700,6 +694,7 @@
 
     },
     "RSSI: %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -824,6 +819,7 @@
       }
     },
     "Signal strength: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -946,9 +942,6 @@
           }
         }
       }
-    },
-    "Sound Settings..." : {
-
     },
     "TODAY" : {
       "extractionState" : "manual",
@@ -1455,6 +1448,7 @@
       }
     },
     "v%@ Changelog" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
