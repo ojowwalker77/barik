@@ -23,18 +23,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Configure tiling WMs to respect Barik's space
-        // Note: Bottom position adds extra padding for window shadows.
-        // To fully disable shadows: SIP disabled + yabai `yabai -m config window_shadow off`
-        let foregroundConfig = ConfigManager.shared.config.foreground
-        var barSize = Int(foregroundConfig.resolveHeight())
-        if foregroundConfig.position == .bottom {
-            barSize += 15  // Extra space for window shadows
-        }
-        TilingWMConfigurator.configureOnLaunch(barSize: barSize, position: foregroundConfig.position)
-
-        setupPanels()
-
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersDidChange(_:)),
@@ -46,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             selector: #selector(configDidChange),
             name: Notification.Name("ConfigDidChange"),
             object: nil)
+
+        configDidChange()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

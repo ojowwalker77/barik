@@ -104,7 +104,7 @@ final class ConfigManager: ObservableObject {
         if Thread.isMainThread {
             apply()
         } else {
-            DispatchQueue.main.async { apply() }
+            DispatchQueue.main.sync { apply() }
         }
     }
 
