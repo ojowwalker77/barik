@@ -5,6 +5,7 @@
 ### Popups
 - Auto-size popups to content with live resizing and better screen clamping
 - Align popup content to the bar edge for more accurate anchoring
+- Fix top/bottom popup placement and flip when space is tight
 - Debug logging only in debug builds
 
 ### Battery
@@ -18,6 +19,7 @@
 
 ### Settings
 - Show the canonical config file path (with copy action) in customization
+- Redesign the customization sheet with a native Form + GroupBox layout
 - Auto-save customization changes when the app quits
 
 ## 0.6.1

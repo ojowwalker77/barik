@@ -11,41 +11,30 @@ struct ToolbarCustomizationSheet: View {
             // Header
             header
 
-            // Content
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Instructions
-                    Text("Drag items to the toolbar above, or drag them off to remove.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
+            Divider()
 
-                    // Zone Layout Cards
-                    ZoneLayoutSection(engine: engine)
-
-                    // Available Widgets
-                    AvailableWidgetsSection(engine: engine)
-
-                    // Reset & Config
-                    BottomActionsSection(engine: engine)
-                }
-                .padding(20)
+            Form {
+                ZoneLayoutSection(engine: engine)
+                AvailableWidgetsSection(engine: engine)
+                RestoreSection(engine: engine)
+                ConfigSection()
             }
+            .formStyle(.grouped)
+            .padding(.horizontal, 12)
         }
         .frame(width: 500, height: 560)
-        .background(.regularMaterial)
-    }
-
-    /// Get widgets available to add (not already in toolbar unless allowMultiple)
-    private var availableWidgets: [WidgetDefinition] {
-        let currentIds = engine.allPlacements.map { $0.widgetId }
-        return WidgetRegistry.available(excluding: currentIds)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private var header: some View {
-        HStack {
-            Text("Customize Toolbar")
-                .font(.system(size: 15, weight: .semibold))
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Customize Toolbar")
+                    .font(.title3.weight(.semibold))
+                Text("Drag items to the toolbar above, or drag them off to remove.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
 
@@ -58,8 +47,8 @@ struct ToolbarCustomizationSheet: View {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13))
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 .help("Undo")
             }
 
@@ -68,8 +57,8 @@ struct ToolbarCustomizationSheet: View {
                     engine.cancelCustomizing()
                     SettingsWindowController.shared.closeWindow()
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
 
             Button("Done") {
@@ -80,8 +69,7 @@ struct ToolbarCustomizationSheet: View {
             .controlSize(.small)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
+        .padding(.vertical, 16)
     }
 }
 
@@ -91,24 +79,20 @@ struct ZoneLayoutSection: View {
     @Bindable var engine: WidgetGridEngine
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("ZONES")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .tracking(0.5)
-
-            HStack(spacing: 12) {
-                ZoneCard(zone: .left, engine: engine)
-                ZoneCard(zone: .center, engine: engine)
-                ZoneCard(zone: .right, engine: engine)
+        GroupBox("Zones") {
+            VStack(spacing: 12) {
+                ZoneRow(zone: .left, engine: engine)
+                ZoneRow(zone: .center, engine: engine)
+                ZoneRow(zone: .right, engine: engine)
             }
+            .padding(.top, 4)
         }
     }
 }
 
-// MARK: - Zone Card
+// MARK: - Zone Row
 
-struct ZoneCard: View {
+struct ZoneRow: View {
     let zone: Zone
     @Bindable var engine: WidgetGridEngine
 
@@ -133,46 +117,24 @@ struct ZoneCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Zone name
-            Text(zoneName)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.primary)
-
-            // Capacity bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.15))
-
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            LinearGradient(
-                                colors: [zoneColor, zoneColor.opacity(0.7)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(4, geo.size.width * min(fillPercentage, 1.0)))
+        LabeledContent(zoneName.capitalized) {
+            HStack(spacing: 10) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color(nsColor: .separatorColor).opacity(0.3))
+                        Capsule()
+                            .fill(zoneColor)
+                            .frame(width: max(6, geo.size.width * min(fillPercentage, 1.0)))
+                    }
                 }
-            }
-            .frame(height: 10)
+                .frame(width: 110, height: 8)
 
-            // Widget count
-            Text("\(widgetCount) widget\(widgetCount == 1 ? "" : "s")")
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+                Text("\(widgetCount) widget\(widgetCount == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(zoneColor.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(zoneColor.opacity(0.2), lineWidth: 1)
-                )
-        )
     }
 }
 
@@ -188,12 +150,7 @@ struct AvailableWidgetsSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("AVAILABLE WIDGETS")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .tracking(0.5)
-
+        GroupBox("Available Widgets") {
             if availableWidgets.isEmpty {
                 HStack {
                     Spacer()
@@ -208,10 +165,7 @@ struct AvailableWidgetsSection: View {
                     .padding(.vertical, 20)
                     Spacer()
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.gray.opacity(0.06))
-                )
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .controlBackgroundColor)))
             } else {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     ForEach(availableWidgets) { definition in
@@ -237,28 +191,28 @@ struct WidgetCard: View {
         HStack(spacing: 12) {
             // Icon
             Image(systemName: definition.icon)
-                .font(.system(size: 18))
-                .frame(width: 36, height: 36)
+                .font(.system(size: 16))
+                .frame(width: 30, height: 30)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.1))
+                        .fill(Color(nsColor: .controlBackgroundColor))
                 )
 
             // Name only
             Text(definition.name)
-                .font(.system(size: 12, weight: .medium))
+                .font(.callout.weight(.medium))
                 .lineLimit(1)
 
             Spacer()
         }
-        .padding(10)
+        .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(isHovered ? Color.gray.opacity(0.12) : Color.gray.opacity(0.06))
+                .fill(isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.9) : Color.clear)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(isHovered ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                .strokeBorder(isHovered ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear, lineWidth: 1)
         )
         .opacity(isDragging ? 0.4 : 1.0)
         .scaleEffect(isDragging ? 0.95 : 1.0)
@@ -303,95 +257,96 @@ struct PaletteDragPreview: View {
         .background(Color.accentColor)
         .foregroundStyle(.white)
         .cornerRadius(8)
-        .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
     }
 }
 
-// MARK: - Bottom Actions Section
+// MARK: - Restore Section
 
-struct BottomActionsSection: View {
+struct RestoreSection: View {
     @Bindable var engine: WidgetGridEngine
     @State private var isHovered = false
     @State private var isDragging = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Restore defaults
-            VStack(alignment: .leading, spacing: 8) {
-                Text("RESTORE")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    .tracking(0.5)
+        GroupBox("Restore") {
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
 
-                HStack(spacing: 12) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 14))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Default Layout")
+                        .font(.callout.weight(.medium))
+                    Text("Drag to toolbar or click to reset")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
+                }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Default Layout")
-                            .font(.system(size: 12, weight: .medium))
-                        Text("Drag to toolbar or click to reset")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
+                Spacer()
 
-                    Spacer()
-
-                    // Mini preview of defaults
-                    HStack(spacing: 4) {
-                        ForEach(WidgetRegistry.defaultLayout.prefix(4), id: \.self) { widgetId in
-                            if let def = WidgetRegistry.widget(for: widgetId) {
-                                Image(systemName: def.icon)
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.tertiary)
-                            }
+                HStack(spacing: 4) {
+                    ForEach(WidgetRegistry.defaultLayout.prefix(4), id: \.self) { widgetId in
+                        if let def = WidgetRegistry.widget(for: widgetId) {
+                            Image(systemName: def.icon)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
                         }
                     }
                 }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(isHovered ? Color.gray.opacity(0.12) : Color.gray.opacity(0.06))
-                )
-                .opacity(isDragging ? 0.5 : 1.0)
-                .scaleEffect(isDragging ? 0.98 : 1.0)
-                .animation(.easeInOut(duration: 0.15), value: isHovered)
-                .animation(.easeInOut(duration: 0.15), value: isDragging)
-                .onHover { hovering in
-                    isHovered = hovering
-                }
-                .draggable(DefaultSetTransferable()) {
-                    DefaultSetDragPreview()
-                        .onAppear { isDragging = true }
-                        .onDisappear { isDragging = false }
-                }
-                .onTapGesture {
-                    withAnimation(.spring(duration: 0.3)) {
-                        engine.resetToDefaults()
-                    }
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.9) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(isHovered ? Color(nsColor: .separatorColor).opacity(0.4) : Color.clear, lineWidth: 1)
+            )
+            .opacity(isDragging ? 0.5 : 1.0)
+            .scaleEffect(isDragging ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
+            .animation(.easeInOut(duration: 0.15), value: isDragging)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .draggable(DefaultSetTransferable()) {
+                DefaultSetDragPreview()
+                    .onAppear { isDragging = true }
+                    .onDisappear { isDragging = false }
+            }
+            .onTapGesture {
+                withAnimation(.spring(duration: 0.3)) {
+                    engine.resetToDefaults()
                 }
             }
+        }
+    }
+}
 
-            // Config file button
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
+// MARK: - Config Section
+
+struct ConfigSection: View {
+    var body: some View {
+        GroupBox("Config") {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
                     Button {
                         openConfigFile()
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "doc.text")
-                                .font(.system(size: 11))
-                            Text("Edit Config File...")
-                                .font(.system(size: 11))
+                                .font(.system(size: 12))
+                            Text("Edit Config File…")
+                                .font(.callout)
                         }
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(.link)
 
                     Text(ConfigManager.shared.configFilePathForDisplay)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .contextMenu {
@@ -403,9 +358,14 @@ struct BottomActionsSection: View {
 
                 Spacer()
 
-                // Bar position picker (compact)
-                BarPositionPicker()
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text("Position")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    BarPositionPicker()
+                }
             }
+            .padding(.top, 4)
         }
     }
 
@@ -432,10 +392,6 @@ struct BarPositionPicker: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text("Position:")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
             Picker("", selection: positionBinding) {
                 Text("Top").tag("top")
                 Text("Bottom").tag("bottom")

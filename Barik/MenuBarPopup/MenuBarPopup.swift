@@ -219,6 +219,7 @@ class MenuBarPopup {
         position: BarPosition
     ) {
         let visibleFrame = screen.visibleFrame
+        let normalizedRect = normalizeWidgetRect(rect, screen: screen, position: position)
         let popupSize = clampedPopupSize(
             size: size,
             visibleFrame: visibleFrame,
@@ -226,7 +227,7 @@ class MenuBarPopup {
         )
 
         // Panel X: centered on widget, clamped to screen visible frame
-        let desiredX = rect.midX - popupSize.width / 2
+        let desiredX = normalizedRect.midX - popupSize.width / 2
         let panelX = clamp(
             desiredX,
             min: visibleFrame.minX + 10,
@@ -234,14 +235,24 @@ class MenuBarPopup {
         )
 
         // rect is already in global screen coords (origin bottom-left)
-        let widgetTopMacOS = rect.maxY
-        let widgetBottomMacOS = rect.minY
+        let widgetTopMacOS = normalizedRect.maxY
+        let widgetBottomMacOS = normalizedRect.minY
+
+        let padding: CGFloat = 5
+        let spaceAbove = visibleFrame.maxY - widgetTopMacOS
+        let spaceBelow = widgetBottomMacOS - visibleFrame.minY
+
+        let prefersBelow = position == .top
+        let needsFlip = prefersBelow
+            ? spaceBelow < popupSize.height + padding
+            : spaceAbove < popupSize.height + padding
+
+        let showBelow = prefersBelow != needsFlip
 
         // Panel Y: above widget for bottom bar, below widget for top bar
-        let desiredY: CGFloat = switch position {
-        case .top: widgetBottomMacOS - popupSize.height - 5   // Popup below widget
-        case .bottom: widgetTopMacOS + 5                       // Popup above widget
-        }
+        let desiredY: CGFloat = showBelow
+            ? widgetBottomMacOS - popupSize.height - padding
+            : widgetTopMacOS + padding
         let panelY = clamp(
             desiredY,
             min: visibleFrame.minY + 10,
@@ -268,6 +279,31 @@ class MenuBarPopup {
 
     private static func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
         Swift.min(Swift.max(value, min), max)
+    }
+
+    private static func normalizeWidgetRect(
+        _ rect: CGRect,
+        screen: NSScreen,
+        position: BarPosition
+    ) -> CGRect {
+        let visibleFrame = screen.visibleFrame
+
+        let likelyFlippedTopOrigin = position == .bottom
+            ? rect.minY > visibleFrame.midY
+            : rect.maxY < visibleFrame.midY
+
+        guard likelyFlippedTopOrigin else { return rect }
+
+        let screenMaxY = screen.frame.maxY
+        let convertedMinY = screenMaxY - rect.maxY
+        let convertedMaxY = screenMaxY - rect.minY
+
+        return CGRect(
+            x: rect.origin.x,
+            y: convertedMinY,
+            width: rect.width,
+            height: convertedMaxY - convertedMinY
+        )
     }
 
     #if DEBUG
