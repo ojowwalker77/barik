@@ -698,7 +698,7 @@ final class WidgetGridEngine {
             )
         }
 
-        ConfigStore.shared.updateZonedLayout(
+        ConfigManager.shared.updateZonedLayout(
             left: leftItems,
             center: centerItems,
             right: rightItems
@@ -706,7 +706,7 @@ final class WidgetGridEngine {
 
         // Also update legacy widget order for backwards compatibility
         let allWidgetIds = (leftPlacements + centerPlacements + rightPlacements).map { $0.widgetId }
-        ConfigStore.shared.updateWidgetOrder(widgetIds: allWidgetIds)
+        ConfigManager.shared.updateWidgetOrder(allWidgetIds)
 
         hasUnsavedChanges = false
     }

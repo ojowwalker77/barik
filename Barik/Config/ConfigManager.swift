@@ -35,35 +35,10 @@ final class ConfigManager: ObservableObject {
             self?.typedConfig = newConfig
         }
 
-        loadOrCreateConfigIfNeeded()
-    }
-
-    private func loadOrCreateConfigIfNeeded() {
-        let homePath = FileManager.default.homeDirectoryForCurrentUser.path
-        let path1 = "\(homePath)/.barik-config.toml"
-        let path2 = "\(homePath)/.config/barik/config.toml"
-        var chosenPath: String?
-
-        if FileManager.default.fileExists(atPath: path1) {
-            chosenPath = path1
-        } else if FileManager.default.fileExists(atPath: path2) {
-            chosenPath = path2
-        } else {
-            do {
-                try createDefaultConfig(at: path1)
-                chosenPath = path1
-            } catch {
-                initError = "Error creating default config: \(error.localizedDescription)"
-                print("Error when creating default config:", error)
-                return
-            }
-        }
-
-        if let path = chosenPath {
-            configFilePath = path
-            parseConfigFile(at: path)
-            startWatchingFile(at: path)
-        }
+        let path = result.path.path
+        configFilePath = path
+        parseConfigFile(at: path)
+        startWatchingFile(at: path)
     }
 
     private func parseConfigFile(at path: String) {
@@ -663,6 +638,81 @@ final class ConfigManager: ObservableObject {
         } catch {
             print("Error updating widget order:", error)
         }
+    }
+
+    /// Update zoned layout in the config
+    func updateZonedLayout(left: [ZonedWidgetItem], center: [ZonedWidgetItem], right: [ZonedWidgetItem]) {
+        ConfigStore.shared.updateZonedLayout(left: left, center: center, right: right)
+
+        guard let path = configFilePath else { return }
+        do {
+            let content = try String(contentsOfFile: path, encoding: .utf8)
+            let updatedContent = updatedTOMLZones(
+                original: content,
+                left: left.map { $0.widgetId },
+                center: center.map { $0.widgetId },
+                right: right.map { $0.widgetId }
+            )
+            try updatedContent.write(toFile: path, atomically: true, encoding: .utf8)
+            parseConfigFile(at: path)
+        } catch {
+            print("Error updating zoned layout:", error)
+        }
+    }
+
+    private func updatedTOMLZones(
+        original: String,
+        left: [String],
+        center: [String],
+        right: [String]
+    ) -> String {
+        let lines = original.components(separatedBy: "\n")
+        var newLines: [String] = []
+        var skipping = false
+        var inserted = false
+
+        func zoneLines() -> [String] {
+            func formatArray(_ ids: [String]) -> String {
+                let joined = ids.map { "\"\($0)\"" }.joined(separator: ", ")
+                return "[\(joined)]"
+            }
+            return [
+                "",
+                "[widgets.zones]",
+                "left = \(formatArray(left))",
+                "center = \(formatArray(center))",
+                "right = \(formatArray(right))",
+                ""
+            ]
+        }
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed == "[widgets.zones]" {
+                skipping = true
+                continue
+            }
+
+            if skipping {
+                if trimmed.hasPrefix("[") {
+                    if !inserted {
+                        newLines.append(contentsOf: zoneLines())
+                        inserted = true
+                    }
+                    newLines.append(line)
+                    skipping = false
+                }
+                continue
+            }
+
+            newLines.append(line)
+        }
+
+        if !inserted {
+            newLines.append(contentsOf: zoneLines())
+        }
+
+        return newLines.joined(separator: "\n")
     }
 
     private func updatedTOMLWidgetOrder(original: String, widgetIds: [String]) -> String {

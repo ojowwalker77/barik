@@ -23,44 +23,53 @@ enum ConfigMigration {
         let legacyExists = FileManager.default.fileExists(atPath: legacyPath.path)
         let newExists = FileManager.default.fileExists(atPath: newPath.path)
 
+        // If both exist, pick the most recent and delete the older
+        if legacyExists && newExists {
+            let legacyDate = (try? FileManager.default.attributesOfItem(atPath: legacyPath.path)[.modificationDate]) as? Date
+            let newDate = (try? FileManager.default.attributesOfItem(atPath: newPath.path)[.modificationDate]) as? Date
+
+            let legacyIsNewer = (legacyDate ?? .distantPast) >= (newDate ?? .distantPast)
+            let preferredPath = legacyIsNewer ? legacyPath : newPath
+            let otherPath = legacyIsNewer ? newPath : legacyPath
+
+            if let config = loadConfig(from: preferredPath) ?? loadConfig(from: otherPath) {
+                try? FileManager.default.removeItem(at: otherPath)
+                return MigrationResult(config: config, path: preferredPath, didMigrate: false)
+            }
+        }
+
         // If new config exists, load it
-        if newExists {
-            if let config = loadConfig(from: newPath) {
-                return MigrationResult(config: config, path: newPath, didMigrate: false)
-            }
+        if newExists, let config = loadConfig(from: newPath) {
+            return MigrationResult(config: config, path: newPath, didMigrate: false)
         }
 
-        // If legacy exists, migrate it
-        if legacyExists {
-            if let legacyConfig = loadLegacyConfig(from: legacyPath) {
-                let newConfig = convertFromLegacy(legacyConfig)
+        // If legacy exists, migrate it to new path
+        if legacyExists, let legacyConfig = loadLegacyConfig(from: legacyPath) {
+            let newConfig = convertFromLegacy(legacyConfig)
 
-                // Ensure directory exists
-                try? FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
+            // Ensure directory exists
+            try? FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
 
-                // Save new config
-                let tomlString = ConfigTOMLEncoder.encode(newConfig)
-                try? tomlString.write(to: newPath, atomically: true, encoding: .utf8)
+            // Save new config
+            let tomlString = ConfigTOMLEncoder.encode(newConfig)
+            try? tomlString.write(to: newPath, atomically: true, encoding: .utf8)
 
-                // Backup old config (remove existing backup first to avoid move failure)
-                let backupPath = legacyPath.appendingPathExtension("backup")
-                try? FileManager.default.removeItem(at: backupPath)
-                try? FileManager.default.moveItem(at: legacyPath, to: backupPath)
+            // Delete old legacy config
+            try? FileManager.default.removeItem(at: legacyPath)
 
-                print("[ConfigMigration] Migrated config from \(legacyPath.path) to \(newPath.path)")
-                print("[ConfigMigration] Old config backed up to \(backupPath.path)")
+            print("[ConfigMigration] Migrated config from \(legacyPath.path) to \(newPath.path)")
 
-                return MigrationResult(config: newConfig, path: newPath, didMigrate: true)
-            }
+            return MigrationResult(config: newConfig, path: newPath, didMigrate: true)
         }
 
-        // No existing config - create default at legacy location (simpler for users)
+        // No existing config - create default at new location
         let defaultConfig = BarikConfig()
         let tomlString = ConfigTOMLEncoder.encode(defaultConfig)
-        try? tomlString.write(to: legacyPath, atomically: true, encoding: .utf8)
-        print("[ConfigMigration] Created default config at \(legacyPath.path)")
+        try? FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
+        try? tomlString.write(to: newPath, atomically: true, encoding: .utf8)
+        print("[ConfigMigration] Created default config at \(newPath.path)")
 
-        return MigrationResult(config: defaultConfig, path: legacyPath, didMigrate: false)
+        return MigrationResult(config: defaultConfig, path: newPath, didMigrate: false)
     }
 
     // MARK: - Loading
@@ -110,8 +119,12 @@ enum ConfigMigration {
             )
         }
 
-        // Migrate flat displayed array to zoned layout
-        config.zonedLayout = migrateToZonedLayout(displayed: root.widgets.displayed)
+        // Migrate or restore zoned layout
+        if let restored = loadZonedLayout(from: root.widgets) {
+            config.zonedLayout = restored
+        } else {
+            config.zonedLayout = migrateToZonedLayout(displayed: root.widgets.displayed)
+        }
 
         // Widget-specific settings
         for (widgetId, settings) in root.widgets.others {
@@ -154,6 +167,36 @@ enum ConfigMigration {
         }
 
         return config
+    }
+
+    private static func loadZonedLayout(from widgets: WidgetsSection) -> ZonedLayout? {
+        guard let zones = widgets.others["zones"]?.dictionaryValue else {
+            return nil
+        }
+
+        func parseList(_ value: TOMLValue?) -> [String] {
+            value?.arrayValue?.compactMap { $0.stringValue } ?? []
+        }
+
+        let leftIds = parseList(zones["left"])
+        let centerIds = parseList(zones["center"])
+        let rightIds = parseList(zones["right"])
+
+        if leftIds.isEmpty && centerIds.isEmpty && rightIds.isEmpty {
+            return nil
+        }
+
+        func makeItems(_ ids: [String]) -> [ZonedWidgetItem] {
+            ids.enumerated().map { index, widgetId in
+                ZonedWidgetItem(widgetId: widgetId, order: index)
+            }
+        }
+
+        return ZonedLayout(
+            left: makeItems(leftIds),
+            center: makeItems(centerIds),
+            right: makeItems(rightIds)
+        )
     }
 
     /// Migrate flat displayed array to zoned layout
