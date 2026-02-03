@@ -105,9 +105,12 @@ class BatteryManager: ObservableObject {
         }
     }
 
-    private static let powerSourceCallback: IOPSPowerSourceCallbackType = { context in
-        guard let context else { return }
-        let manager = Unmanaged<BatteryManager>.fromOpaque(context).takeUnretainedValue()
-        manager.handlePowerSourceChange()
-    }
+    private static let powerSourceCallback:
+        @convention(c) (UnsafeMutableRawPointer?) -> Void = { context in
+            guard let context else { return }
+            let manager = Unmanaged<BatteryManager>
+                .fromOpaque(context)
+                .takeUnretainedValue()
+            manager.handlePowerSourceChange()
+        }
 }
