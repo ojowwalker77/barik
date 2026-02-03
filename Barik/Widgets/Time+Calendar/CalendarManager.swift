@@ -6,8 +6,8 @@ class CalendarManager: ObservableObject {
     static let shared = CalendarManager()
 
     private var config: ConfigData? {
-        ConfigManager.shared.config.rootToml.widgets
-            .config(for: "default.time")?["calendar"]?.dictionaryValue
+        ConfigManager.shared
+            .resolvedWidgetConfig(for: "default.time")["calendar"]?.dictionaryValue
     }
 
     private var showEvents: Bool {

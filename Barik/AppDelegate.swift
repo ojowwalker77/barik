@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Configure tiling WMs to respect Barik's space
         // Note: Bottom position adds extra padding for window shadows.
         // To fully disable shadows: SIP disabled + yabai `yabai -m config window_shadow off`
-        let foregroundConfig = ConfigManager.shared.config.experimental.foreground
+        let foregroundConfig = ConfigManager.shared.config.foreground
         var barSize = Int(foregroundConfig.resolveHeight())
         if foregroundConfig.position == .bottom {
             barSize += 15  // Extra space for window shadows
@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupPanels()
 
         // Reconfigure tiling WM for position change (runs on background queue)
-        let foregroundConfig = ConfigManager.shared.config.experimental.foreground
+        let foregroundConfig = ConfigManager.shared.config.foreground
         var barSize = Int(foregroundConfig.resolveHeight())
         if foregroundConfig.position == .bottom {
             barSize += 15

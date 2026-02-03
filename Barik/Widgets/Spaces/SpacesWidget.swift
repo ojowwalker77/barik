@@ -5,7 +5,7 @@ struct SpacesWidget: View {
     @StateObject var viewModel: SpacesViewModel
 
     @ObservedObject var configManager = ConfigManager.shared
-    var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
+    var foregroundHeight: CGFloat { configManager.config.foreground.resolveHeight() }
 
     init(monitorName: String? = nil) {
         self.monitorName = monitorName
@@ -34,7 +34,7 @@ private struct SpaceView: View {
     var spaceConfig: ConfigData { config["space"]?.dictionaryValue ?? [:] }
 
     @ObservedObject var configManager = ConfigManager.shared
-    var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
+    var foregroundHeight: CGFloat { configManager.config.foreground.resolveHeight() }
 
     var showKey: Bool { spaceConfig["show-key"]?.boolValue ?? true }
 

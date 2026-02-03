@@ -13,19 +13,15 @@ struct MenuBarView: View {
     }
 
     var body: some View {
-        let theme: ColorScheme? =
-            switch configManager.config.rootToml.theme {
-            case "dark":
-                .dark
-            case "light":
-                .light
-            default:
-                .none
-            }
+        let theme: ColorScheme? = switch configManager.config.theme {
+        case .dark: .dark
+        case .light: .light
+        case .system: .none
+        }
 
-        let position = configManager.config.experimental.foreground.position
-        let padding = configManager.config.experimental.foreground.horizontalPadding
-        let foreground = configManager.config.experimental.foreground
+        let position = configManager.config.foreground.position
+        let padding = configManager.config.foreground.horizontalPadding
+        let foreground = configManager.config.foreground
         let barHeight = max(foreground.resolveHeight(), 1.0)
 
         let alignment: Alignment = switch position {
@@ -83,7 +79,7 @@ struct MenuBarView: View {
 
     @ViewBuilder
     private func normalModeContent(barHeight: CGFloat) -> some View {
-        let foreground = configManager.config.experimental.foreground
+        let foreground = configManager.config.foreground
         let spacing = foreground.spacing
 
         // Build set of widgets to hide based on config flags
@@ -235,8 +231,7 @@ struct ZoneView: View {
 
     @ViewBuilder
     private func buildWidgetView(for widgetId: String) -> some View {
-        let item = TomlWidgetItem(id: widgetId, inlineParams: [:])
-        let config = ConfigProvider(config: configManager.resolvedWidgetConfig(for: item))
+        let config = ConfigProvider(config: configManager.resolvedWidgetConfig(for: widgetId))
 
         switch widgetId {
         case "default.spaces":
@@ -333,8 +328,7 @@ struct CustomizationZoneView: View {
 
     @ViewBuilder
     private func buildWidgetView(for widgetId: String) -> some View {
-        let item = TomlWidgetItem(id: widgetId, inlineParams: [:])
-        let config = ConfigProvider(config: configManager.resolvedWidgetConfig(for: item))
+        let config = ConfigProvider(config: configManager.resolvedWidgetConfig(for: widgetId))
 
         switch widgetId {
         case "default.spaces":

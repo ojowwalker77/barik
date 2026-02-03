@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import Combine
 
 /// Observable config store - read-only cache, ConfigManager owns file I/O
 @Observable
@@ -10,14 +9,16 @@ final class ConfigStore {
     private(set) var config: BarikConfig = .init()
     private var onChangeCallbacks: [(BarikConfig) -> Void] = []
 
-    private init() {
-        // Migration and loading is done via ConfigMigration.migrateIfNeeded()
-        // which is called from ConfigManager during app startup
-    }
+    private init() {}
 
     /// Initialize from migrated config
     func initialize(with config: BarikConfig) {
         self.config = config
+    }
+
+    func replaceConfig(_ config: BarikConfig) {
+        self.config = config
+        notifyObservers()
     }
 
     // MARK: - In-Memory Updates (ConfigManager handles persistence)
@@ -40,75 +41,6 @@ final class ConfigStore {
         config.zonedLayout.center = center
         config.zonedLayout.right = right
         notifyObservers()
-    }
-
-    // MARK: - Legacy Key Updates (in-memory sync with ConfigManager)
-
-    /// Update config using legacy dotted key path (e.g., "experimental.foreground.position")
-    func updateLegacyKey(_ key: String, stringValue: String) {
-        let components = key.split(separator: ".").map(String.init)
-        applyLegacyUpdate(components: components, stringValue: stringValue)
-        notifyObservers()
-    }
-
-    func updateLegacyKey(_ key: String, boolValue: Bool) {
-        let components = key.split(separator: ".").map(String.init)
-        applyLegacyBoolUpdate(components: components, boolValue: boolValue)
-        notifyObservers()
-    }
-
-    func updateLegacyKey(_ key: String, intValue: Int) {
-        let components = key.split(separator: ".").map(String.init)
-        applyLegacyIntUpdate(components: components, intValue: intValue)
-        notifyObservers()
-    }
-
-    private func applyLegacyUpdate(components: [String], stringValue: String) {
-        // Map legacy keys to typed config
-        switch components {
-        case ["theme"]:
-            if let theme = BarikConfig.Theme(rawValue: stringValue) {
-                config.theme = theme
-            }
-        case ["experimental", "foreground", "position"]:
-            if let pos = BarikConfig.ForegroundSettings.Position(rawValue: stringValue) {
-                config.foreground.position = pos
-            }
-        default:
-            print("[ConfigStore] Unknown legacy key: \(components.joined(separator: "."))")
-        }
-    }
-
-    private func applyLegacyBoolUpdate(components: [String], boolValue: Bool) {
-        switch components {
-        case ["background", "enabled"]:
-            config.background.enabled = boolValue
-        case ["experimental", "foreground", "show-clock"]:
-            config.foreground.showClock = boolValue
-        case ["experimental", "foreground", "show-battery"]:
-            config.foreground.showBattery = boolValue
-        case ["experimental", "foreground", "show-network"]:
-            config.foreground.showNetwork = boolValue
-        case ["experimental", "foreground", "widgets-background", "displayed"]:
-            config.foreground.widgetsBackground.displayed = boolValue
-        default:
-            print("[ConfigStore] Unknown legacy bool key: \(components.joined(separator: "."))")
-        }
-    }
-
-    private func applyLegacyIntUpdate(components: [String], intValue: Int) {
-        switch components {
-        case ["experimental", "foreground", "spacing"]:
-            config.foreground.spacing = CGFloat(intValue)
-        case ["experimental", "foreground", "horizontal-padding"]:
-            config.foreground.horizontalPadding = CGFloat(intValue)
-        case ["experimental", "foreground", "widgets-background", "blur"]:
-            config.foreground.widgetsBackground.blur = intValue
-        case ["background", "blur"]:
-            config.background.blur = intValue
-        default:
-            print("[ConfigStore] Unknown legacy int key: \(components.joined(separator: "."))")
-        }
     }
 
     // MARK: - Change Observation
@@ -164,19 +96,35 @@ enum ConfigTOMLEncoder {
             }
         }
 
+        // Zoned layout
+        lines.append("[zonedLayout]")
+        lines.append("left = \(encodeStringArray(config.zonedLayout.left.map { $0.widgetId }))")
+        lines.append("center = \(encodeStringArray(config.zonedLayout.center.map { $0.widgetId }))")
+        lines.append("right = \(encodeStringArray(config.zonedLayout.right.map { $0.widgetId }))")
+        lines.append("")
+
         // Background
         lines.append("[background]")
         lines.append("enabled = \(config.background.enabled)")
+        if config.background.height != .barikDefault {
+            lines.append("height = \(encodeDimension(config.background.height))")
+        }
         if config.background.blur != 3 {
             lines.append("blur = \(config.background.blur)")
         }
         lines.append("")
 
-        // Experimental foreground (only if non-default)
+        // Foreground (only if non-default)
         if config.foreground != BarikConfig.ForegroundSettings() {
-            lines.append("[experimental.foreground]")
+            lines.append("[foreground]")
             if config.foreground.position != .top {
                 lines.append("position = \"\(config.foreground.position.rawValue)\"")
+            }
+            if config.foreground.height != .barikDefault {
+                lines.append("height = \(encodeDimension(config.foreground.height))")
+            }
+            if config.foreground.width != .barikDefault {
+                lines.append("width = \(encodeDimension(config.foreground.width))")
             }
             if config.foreground.spacing != 15 {
                 lines.append("spacing = \(Int(config.foreground.spacing))")
@@ -193,24 +141,43 @@ enum ConfigTOMLEncoder {
             if !config.foreground.showNetwork {
                 lines.append("show-network = false")
             }
+            if config.foreground.widgetsBackground.displayed
+                || config.foreground.widgetsBackground.blur != 3
+            {
+                lines.append("")
+                lines.append("[foreground.widgets-background]")
+                if config.foreground.widgetsBackground.displayed {
+                    lines.append("displayed = true")
+                }
+                if config.foreground.widgetsBackground.blur != 3 {
+                    lines.append("blur = \(config.foreground.widgetsBackground.blur)")
+                }
+            }
             lines.append("")
         }
 
         // Yabai path (only if custom)
-        if let yabaiPath = config.yabai.path {
-            lines.append("[yabai]")
-            lines.append("path = \"\(yabaiPath)\"")
-            lines.append("")
-        }
+        lines.append("[yabai]")
+        lines.append("path = \"\(config.yabai.path)\"")
+        lines.append("")
 
         // Aerospace path (only if custom)
-        if let aerospacePath = config.aerospace.path {
-            lines.append("[aerospace]")
-            lines.append("path = \"\(aerospacePath)\"")
-            lines.append("")
-        }
+        lines.append("[aerospace]")
+        lines.append("path = \"\(config.aerospace.path)\"")
+        lines.append("")
 
         return lines.joined(separator: "\n")
+    }
+
+    private static func encodeDimension(_ value: BarikConfig.DimensionValue) -> String {
+        switch value {
+        case .barikDefault:
+            return "\"default\""
+        case .menuBar:
+            return "\"menu-bar\""
+        case .custom(let number):
+            return String(number)
+        }
     }
 
     private static func encodeValue(_ value: AnyCodableValue) -> String {
@@ -231,5 +198,10 @@ enum ConfigTOMLEncoder {
         params.sorted(by: { $0.key < $1.key })
             .map { "\($0.key) = \(encodeValue($0.value))" }
             .joined(separator: ", ")
+    }
+
+    private static func encodeStringArray(_ values: [String]) -> String {
+        let joined = values.map { "\"\($0)\"" }.joined(separator: ", ")
+        return "[\(joined)]"
     }
 }

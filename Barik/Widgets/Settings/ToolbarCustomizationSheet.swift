@@ -379,7 +379,7 @@ struct BarPositionPicker: View {
     @ObservedObject private var configManager = ConfigManager.shared
 
     private var position: BarPosition {
-        configManager.config.experimental.foreground.position
+        configManager.config.foreground.position
     }
 
     var body: some View {
@@ -397,7 +397,7 @@ struct BarPositionPicker: View {
     private var positionBinding: Binding<String> {
         Binding(
             get: { position.rawValue },
-            set: { ConfigManager.shared.updateConfigValue(key: "experimental.foreground.position", newValue: $0) }
+            set: { ConfigManager.shared.updateConfigValue(key: "foreground.position", newValue: $0) }
         )
     }
 }
