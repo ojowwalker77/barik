@@ -5,7 +5,7 @@ struct NetworkPopup: View {
     @StateObject private var viewModel = NetworkStatusViewModel()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             if viewModel.wifiState != .notSupported {
                 HStack(spacing: 8) {
                     wifiIcon
@@ -17,7 +17,7 @@ struct NetworkPopup: View {
                 if viewModel.ssid != "Not connected"
                     && viewModel.ssid != "No interface"
                 {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(
                             "Signal strength: \(viewModel.wifiSignalStrength.rawValue)"
                         )
@@ -39,7 +39,9 @@ struct NetworkPopup: View {
                 }
             }
         }
-        .padding(25)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .background(Color.black)
     }
 

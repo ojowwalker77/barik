@@ -6,6 +6,7 @@
 - Auto-size popups to content with live resizing and better screen clamping
 - Align popup content to the bar edge for more accurate anchoring
 - Fix top/bottom popup placement and flip when space is tight
+- Tighten Wi-Fi popup spacing and padding
 - Debug logging only in debug builds
 
 ### Battery
