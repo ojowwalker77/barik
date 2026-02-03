@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppKit
 
 /// Typed configuration model - single source of truth for all settings
 struct BarikConfig: Codable, Equatable {
@@ -186,6 +187,17 @@ struct BarikConfig: Codable, Equatable {
             default: return .regular
             }
         }
+
+        var blurEffectMaterial: NSVisualEffectView.Material {
+            switch blur {
+            case 1: return .underWindowBackground
+            case 2: return .underWindowBackground
+            case 3: return .contentBackground
+            case 4: return .sidebar
+            case 5: return .hudWindow
+            default: return .contentBackground
+            }
+        }
     }
 
     struct BackgroundSettings: Codable, Equatable {
@@ -218,6 +230,17 @@ struct BarikConfig: Codable, Equatable {
             case 4: return .thick
             case 5: return .ultraThick
             default: return .regular
+            }
+        }
+
+        var blurEffectMaterial: NSVisualEffectView.Material {
+            switch blur {
+            case 1: return .underWindowBackground
+            case 2: return .underWindowBackground
+            case 3: return .contentBackground
+            case 4: return .sidebar
+            case 5: return .hudWindow
+            default: return .contentBackground
             }
         }
     }

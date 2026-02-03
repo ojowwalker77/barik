@@ -35,7 +35,7 @@ struct BackgroundView: View {
                         .id("black")
                 } else {
                     VisualEffectView(
-                        material: configManager.config.background.blurMaterial,
+                        material: configManager.config.background.blurEffectMaterial,
                         blendingMode: .behindWindow,
                         state: .active
                     )
