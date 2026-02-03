@@ -176,7 +176,7 @@ enum ConfigTOMLEncoder {
         case .menuBar:
             return "\"menu-bar\""
         case .custom(let number):
-            return String(number)
+            return String(Double(number))
         }
     }
 
