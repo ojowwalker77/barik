@@ -148,7 +148,7 @@
         }
       }
     },
-    "AVAILABLE WIDGETS" : {
+    "Available Widgets" : {
 
     },
     "Bluetooth" : {
@@ -287,7 +287,13 @@
         }
       }
     },
+    "Config" : {
+
+    },
     "Connected" : {
+
+    },
+    "Copy Path" : {
 
     },
     "Customize Toolbar" : {
@@ -305,7 +311,7 @@
     "Drag to toolbar or click to reset" : {
 
     },
-    "Edit Config File..." : {
+    "Edit Config File…" : {
 
     },
     "EMPTY_EVENTS" : {
@@ -687,10 +693,10 @@
         }
       }
     },
-    "Position:" : {
+    "Position" : {
 
     },
-    "RESTORE" : {
+    "Restore" : {
 
     },
     "RSSI: %lld" : {
@@ -1696,7 +1702,7 @@
         }
       }
     },
-    "ZONES" : {
+    "Zones" : {
 
     }
   },

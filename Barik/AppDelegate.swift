@@ -33,7 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         TilingWMConfigurator.configureOnLaunch(barSize: barSize, position: foregroundConfig.position)
 
-        MenuBarPopup.setup()
         setupPanels()
 
         NotificationCenter.default.addObserver(
@@ -114,7 +113,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuBarPanels.removeValue(forKey: displayID)
         }
 
-        MenuBarPopup.setupAllScreens()
     }
 
     /// Sets up an NSPanel with the provided parameters for a specific display.

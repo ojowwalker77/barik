@@ -6,7 +6,6 @@ struct NowPlayingWidget: View {
     @EnvironmentObject var configProvider: ConfigProvider
     @ObservedObject var playingManager = NowPlayingManager.shared
 
-    @State private var widgetFrame: CGRect = .zero
     @State private var animatedWidth: CGFloat = 0
 
     var body: some View {
@@ -26,24 +25,8 @@ struct NowPlayingWidget: View {
 
                 // Visible content with fixed animated width.
                 VisibleNowPlayingContent(song: song, width: animatedWidth)
-                    .onTapGesture {
-                        MenuBarPopup.show(rect: widgetFrame, id: "nowplaying") {
-                            NowPlayingPopup(configProvider: configProvider)
-                        }
-                    }
             }
         }
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear {
-                        widgetFrame = geometry.frame(in: .global)
-                    }
-                    .onChange(of: geometry.frame(in: .global)) { _, newFrame in
-                        widgetFrame = newFrame
-                    }
-            }
-        )
     }
 }
 

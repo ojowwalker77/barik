@@ -7,14 +7,12 @@ struct RootToml: Decodable {
     var aerospace: AerospaceConfig?
     var experimental: ExperimentalConfig?
     var widgets: WidgetsSection
-    var popup: PopupSection?
 
     init() {
         self.theme = nil
         self.yabai = nil
         self.aerospace = nil
         self.widgets = WidgetsSection(displayed: [], others: [:])
-        self.popup = nil
     }
 }
 
@@ -101,56 +99,6 @@ struct WidgetsSection: Decodable {
 
     func config(for widgetId: String) -> ConfigData? {
         let keys = widgetId.split(separator: ".").map { String($0) }
-
-        var current: Any? = others
-
-        for key in keys {
-            guard let dict = current as? [String: Any] else {
-                return nil
-            }
-            current = dict[key]
-        }
-
-        return (current as? TOMLValue)?.dictionaryValue as? ConfigData
-    }
-}
-
-struct PopupSection: Decodable {
-    let others: [String: ConfigData]
-
-    private struct DynamicKey: CodingKey {
-        var stringValue: String
-        var intValue: Int? = nil
-
-        init?(stringValue: String) { self.stringValue = stringValue }
-        init?(intValue: Int) { return nil }
-    }
-
-    init() {
-        self.others = [:]
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: DynamicKey.self)
-        var tempDict = [String: ConfigData]()
-
-        for key in container.allKeys {
-            let nested = try container.nestedContainer(
-                keyedBy: DynamicKey.self, forKey: key)
-
-            var widgetDict = ConfigData()
-            for nestedKey in nested.allKeys {
-                let value = try nested.decode(TOMLValue.self, forKey: nestedKey)
-                widgetDict[nestedKey.stringValue] = value
-            }
-            tempDict[key.stringValue] = widgetDict
-        }
-
-        self.others = tempDict
-    }
-
-    func config(for path: String) -> ConfigData? {
-        let keys = path.split(separator: ".").map { String($0) }
 
         var current: Any? = others
 
@@ -539,4 +487,3 @@ enum BackgroundForegroundHeight: Decodable {
         )
     }
 }
-

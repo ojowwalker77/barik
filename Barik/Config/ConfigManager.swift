@@ -210,9 +210,6 @@ final class ConfigManager: ObservableObject {
             # calendar.allow-list = ["Home", "Personal"] # show only these calendars
             # calendar.deny-list = ["Work", "Boss"] # show all calendars except these
 
-            [popup.default.time]
-            view-variant = "box"
-
             [background]
             enabled = true
             """

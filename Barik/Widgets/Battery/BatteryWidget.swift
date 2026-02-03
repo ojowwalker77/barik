@@ -13,8 +13,6 @@ struct BatteryWidget: View {
     private var isPluggedIn: Bool { batteryManager.isPluggedIn }
     private var isLowPowerMode: Bool { batteryManager.isLowPowerMode }
 
-    @State private var rect: CGRect = CGRect()
-
     var body: some View {
         ZStack {
             ZStack(alignment: .leading) {
@@ -41,26 +39,9 @@ struct BatteryWidget: View {
                 .foregroundStyle(batteryTextColor)
             }
             .frame(width: 30, height: 10)
-            .background(
-                GeometryReader { geometry in
-                    Color.clear
-                        .onAppear {
-                            rect = geometry.frame(in: .global)
-                        }
-                        .onChange(of: geometry.frame(in: .global)) {
-                            oldState, newState in
-                            rect = newState
-                        }
-                }
-            )
         }
         .experimentalConfiguration(cornerRadius: 15)
         .frame(maxHeight: .infinity)
-        .background(.black.opacity(0.001))
-        .onTapGesture {
-            MenuBarPopup.show(rect: rect, id: "battery") { BatteryPopup() }
-        }
-
     }
 
     private var batteryTextColor: Color {
