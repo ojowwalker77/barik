@@ -28,9 +28,30 @@ final class ConfigManager: ObservableObject {
         configFilePath = newPath.path
 
         let legacyPath = homePath.appendingPathComponent(".barik-config.toml")
-        if FileManager.default.fileExists(atPath: newPath.path) {
+        let legacyExists = FileManager.default.fileExists(atPath: legacyPath.path)
+        let newExists = FileManager.default.fileExists(atPath: newPath.path)
+
+        if legacyExists && newExists {
+            let legacyDate = (try? FileManager.default.attributesOfItem(atPath: legacyPath.path)[.modificationDate]) as? Date
+            let newDate = (try? FileManager.default.attributesOfItem(atPath: newPath.path)[.modificationDate]) as? Date
+            let legacyIsNewer = (legacyDate ?? .distantPast) >= (newDate ?? .distantPast)
+
+            do {
+                try FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
+                if legacyIsNewer {
+                    try? FileManager.default.removeItem(at: newPath)
+                    try FileManager.default.moveItem(at: legacyPath, to: newPath)
+                } else {
+                    try? FileManager.default.removeItem(at: legacyPath)
+                }
+                loadConfig(from: newPath)
+            } catch {
+                initError = "Error selecting config: \(error.localizedDescription)"
+                return
+            }
+        } else if newExists {
             loadConfig(from: newPath)
-        } else if FileManager.default.fileExists(atPath: legacyPath.path) {
+        } else if legacyExists {
             do {
                 try FileManager.default.createDirectory(at: newDirPath, withIntermediateDirectories: true)
                 try FileManager.default.moveItem(at: legacyPath, to: newPath)
@@ -75,6 +96,9 @@ final class ConfigManager: ObservableObject {
             MenuBarAutoHide.setAutoHide(newConfig.foreground.position == .top)
             self.config = newConfig
             ConfigStore.shared.replaceConfig(newConfig)
+            if !WidgetGridEngine.shared.isCustomizing {
+                WidgetGridEngine.shared.loadFromConfig()
+            }
             NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
         }
         if Thread.isMainThread {

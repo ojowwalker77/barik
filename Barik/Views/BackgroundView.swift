@@ -28,14 +28,21 @@ struct BackgroundView: View {
         if configManager.config.background.enabled {
             GeometryReader { geometry in
                 let isBlack = configManager.config.background.mode == .black
-                spacer(geometry)
-                    .background(
-                        isBlack
-                            ? AnyShapeStyle(Color.black)
-                            : AnyShapeStyle(configManager.config.background.blurMaterial)
+                if isBlack {
+                    spacer(geometry)
+                        .background(Color.black)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+                        .id("black")
+                } else {
+                    VisualEffectView(
+                        material: configManager.config.background.blurMaterial,
+                        blendingMode: .behindWindow,
+                        state: .active
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-                    .id(isBlack ? "black" : "blur")
+                    .mask(spacer(geometry))
+                    .id("blur")
+                }
             }
         }
     }
