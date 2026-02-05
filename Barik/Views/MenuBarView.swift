@@ -12,6 +12,13 @@ struct MenuBarView: View {
         self.monitorName = monitorName
     }
 
+    /// Hide center zone on notched MacBooks when bar is at top (notch blocks center)
+    private var shouldHideCenterZone: Bool {
+        let isTop = configManager.config.foreground.position == .top
+        let isNotchedScreen = monitorName?.contains("Built-in") == true
+        return isTop && isNotchedScreen
+    }
+
     var body: some View {
         let theme: ColorScheme? = switch configManager.config.theme {
         case .dark: .dark
@@ -91,26 +98,30 @@ struct MenuBarView: View {
             return set
         }()
 
-        // 3-zone layout with true center alignment
+        // Conditional 2/3-zone layout (hide center on notched screens at top)
         HStack(spacing: 0) {
             // Left Zone - expands to fill, content aligned leading
+            // When center is hidden, center widgets are appended to left zone
             ZoneView(
                 zone: .left,
                 monitorName: monitorName,
                 spacing: spacing,
                 widgetsToHide: widgetsToHide,
-                configManager: configManager
+                configManager: configManager,
+                additionalPlacements: shouldHideCenterZone ? engine.placements(for: .center) : []
             )
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Center Zone - stays in true center
-            ZoneView(
-                zone: .center,
-                monitorName: monitorName,
-                spacing: spacing,
-                widgetsToHide: widgetsToHide,
-                configManager: configManager
-            )
+            // Center Zone - hidden on notched screens at top position
+            if !shouldHideCenterZone {
+                ZoneView(
+                    zone: .center,
+                    monitorName: monitorName,
+                    spacing: spacing,
+                    widgetsToHide: widgetsToHide,
+                    configManager: configManager
+                )
+            }
 
             // Right Zone - expands to fill, content aligned trailing
             ZoneView(
@@ -150,7 +161,7 @@ struct MenuBarView: View {
             // Cell grid background (subtle guides during drag)
             CellGridOverlay(engine: engine, barHeight: barHeight)
 
-            // 3-zone layout for customization
+            // Conditional 2/3-zone layout for customization
             HStack(spacing: 0) {
                 // Left Zone
                 CustomizationZoneView(
@@ -161,14 +172,33 @@ struct MenuBarView: View {
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Center Zone
-                CustomizationZoneView(
-                    zone: .center,
-                    engine: engine,
-                    barHeight: barHeight,
-                    onRemove: handleRemove
-                )
-                .frame(maxWidth: .infinity, alignment: .center)
+                // Center Zone - show indicator if hidden due to notch
+                if shouldHideCenterZone {
+                    // Visual indicator that center zone is hidden
+                    VStack(spacing: 2) {
+                        Image(systemName: "rectangle.center.inset.filled")
+                            .font(.system(size: 12))
+                        Text("Hidden (notch)")
+                            .font(.system(size: 9))
+                    }
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.1))
+                            .strokeBorder(Color.gray.opacity(0.2), lineWidth: 1, antialiased: true)
+                    )
+                } else {
+                    CustomizationZoneView(
+                        zone: .center,
+                        engine: engine,
+                        barHeight: barHeight,
+                        onRemove: handleRemove
+                    )
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
 
                 // Right Zone
                 CustomizationZoneView(
@@ -214,16 +244,22 @@ struct ZoneView: View {
     let spacing: CGFloat
     let widgetsToHide: Set<String>
     let configManager: ConfigManager
+    /// Additional placements to render (e.g., center widgets merged into edge zone on notched screens)
+    var additionalPlacements: [WidgetPlacement] = []
 
     @Bindable var engine = WidgetGridEngine.shared
 
     var body: some View {
-        let placements = engine.placements(for: zone).filter {
+        let zonePlacements = engine.placements(for: zone).filter {
             !widgetsToHide.contains($0.widgetId)
         }
+        let extraPlacements = additionalPlacements.filter {
+            !widgetsToHide.contains($0.widgetId)
+        }
+        let allPlacements = zonePlacements + extraPlacements
 
         HStack(spacing: spacing) {
-            ForEach(placements) { placement in
+            ForEach(allPlacements) { placement in
                 buildWidgetView(for: placement.widgetId)
             }
         }

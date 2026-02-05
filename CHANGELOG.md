@@ -1,18 +1,20 @@
 # Changelog
 
-## 0.6.2-rc
+## 0.6.2
 
 ### Popups
 - Remove popups entirely; widget clicks no longer open panels
-- Remove popup config keys and default popup config section
 
 ### Battery
-- Battery icon turns yellow in Low Power Mode and red at warning level
+- Battery icon turns yellow in Low Power Mode and red at warning level (#11)
 - Power source updates use notifications with a low-frequency fallback timer
 
+### Notch Detection
+- Hide center zone on built-in displays when bar is at top (#14)
+- Center widgets merge into left zone automatically
+- Customization mode shows "Hidden (notch)" indicator
+
 ### Settings
-- Show the canonical config file path (with copy action) in customization
-- Redesign the customization sheet with a native Form + GroupBox layout
 - Auto-save customization changes when the app quits
 
 ### Fixes
