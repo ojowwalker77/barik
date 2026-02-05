@@ -16,6 +16,23 @@ struct BarikConfig: Codable, Equatable {
         case system, light, dark
     }
 
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        theme = try container.decodeIfPresent(Theme.self, forKey: .theme) ?? .system
+        widgets = try container.decodeIfPresent(WidgetLayout.self, forKey: .widgets) ?? .init()
+        zonedLayout = try container.decodeIfPresent(ZonedLayout.self, forKey: .zonedLayout) ?? .default
+        foreground = try container.decodeIfPresent(ForegroundSettings.self, forKey: .foreground) ?? .init()
+        background = try container.decodeIfPresent(BackgroundSettings.self, forKey: .background) ?? .init()
+        yabai = try container.decodeIfPresent(YabaiSettings.self, forKey: .yabai) ?? .init()
+        aerospace = try container.decodeIfPresent(AerospaceSettings.self, forKey: .aerospace) ?? .init()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case theme, widgets, zonedLayout, foreground, background, yabai, aerospace
+    }
+
     struct WidgetLayout: Codable, Equatable {
         var displayed: [WidgetItem] = WidgetItem.defaultLayout
         var settings: [String: WidgetSettings] = [:]
@@ -150,6 +167,21 @@ struct BarikConfig: Codable, Equatable {
             case widgetsBackground = "widgets-background"
         }
 
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            position = try container.decodeIfPresent(Position.self, forKey: .position) ?? .top
+            height = try container.decodeIfPresent(DimensionValue.self, forKey: .height) ?? .barikDefault
+            width = try container.decodeIfPresent(DimensionValue.self, forKey: .width) ?? .barikDefault
+            horizontalPadding = try container.decodeIfPresent(CGFloat.self, forKey: .horizontalPadding) ?? 8
+            spacing = try container.decodeIfPresent(CGFloat.self, forKey: .spacing) ?? 15
+            showClock = try container.decodeIfPresent(Bool.self, forKey: .showClock) ?? true
+            showBattery = try container.decodeIfPresent(Bool.self, forKey: .showBattery) ?? true
+            showNetwork = try container.decodeIfPresent(Bool.self, forKey: .showNetwork) ?? true
+            widgetsBackground = try container.decodeIfPresent(WidgetsBackgroundSettings.self, forKey: .widgetsBackground) ?? .init()
+        }
+
         func resolveHeight() -> CGFloat {
             switch height {
             case .barikDefault:
@@ -176,6 +208,18 @@ struct BarikConfig: Codable, Equatable {
     struct WidgetsBackgroundSettings: Codable, Equatable {
         var displayed: Bool = false
         var blur: Int = 3
+
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            displayed = try container.decodeIfPresent(Bool.self, forKey: .displayed) ?? false
+            blur = try container.decodeIfPresent(Int.self, forKey: .blur) ?? 3
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case displayed, blur
+        }
 
         var blurMaterial: Material {
             switch blur {
@@ -210,6 +254,20 @@ struct BarikConfig: Codable, Equatable {
         var height: DimensionValue = .barikDefault
         var blur: Int = 3
         var mode: Mode = .blur
+
+        enum CodingKeys: String, CodingKey {
+            case enabled, height, blur, mode
+        }
+
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+            height = try container.decodeIfPresent(DimensionValue.self, forKey: .height) ?? .barikDefault
+            blur = try container.decodeIfPresent(Int.self, forKey: .blur) ?? 3
+            mode = try container.decodeIfPresent(Mode.self, forKey: .mode) ?? .blur
+        }
 
         func resolveHeight() -> CGFloat? {
             switch height {

@@ -100,8 +100,7 @@ final class WidgetGridEngine {
     // MARK: - Initialization
 
     private init() {
-        // Load initial layout from config
-        loadFromConfig()
+        // ConfigManager.applyConfig() will call loadFromConfig() after init
     }
 
     // MARK: - Computed Properties
@@ -638,8 +637,8 @@ final class WidgetGridEngine {
 
     // MARK: - Config Sync
 
-    func loadFromConfig() {
-        let config = ConfigStore.shared.config
+    func loadFromConfig(_ config: BarikConfig? = nil) {
+        let config = config ?? ConfigManager.shared.config
         let zonedLayout = config.zonedLayout
 
         leftPlacements = zonedLayout.left.enumerated().map { index, item in

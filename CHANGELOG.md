@@ -15,6 +15,11 @@
 - Redesign the customization sheet with a native Form + GroupBox layout
 - Auto-save customization changes when the app quits
 
+### Fixes
+- Fix config persistence: settings no longer reset on app restart
+- Remove redundant ConfigStore; ConfigManager is now single source of truth
+- Add tolerant TOML decoding with fallback defaults for missing keys
+
 ## 0.6.1
 
 ### Multi-Monitor Support

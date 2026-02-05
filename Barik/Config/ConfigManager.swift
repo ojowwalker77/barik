@@ -72,7 +72,6 @@ final class ConfigManager: ObservableObject {
             }
         }
 
-        ConfigStore.shared.initialize(with: config)
         startWatchingFile(at: newPath.path)
     }
 
@@ -95,9 +94,8 @@ final class ConfigManager: ObservableObject {
         let apply = {
             MenuBarAutoHide.setAutoHide(newConfig.foreground.position == .top)
             self.config = newConfig
-            ConfigStore.shared.replaceConfig(newConfig)
             if !WidgetGridEngine.shared.isCustomizing {
-                WidgetGridEngine.shared.loadFromConfig()
+                WidgetGridEngine.shared.loadFromConfig(newConfig)
             }
             NotificationCenter.default.post(name: Notification.Name("ConfigDidChange"), object: nil)
         }
