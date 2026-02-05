@@ -4,8 +4,7 @@ struct BatteryWidget: View {
     @EnvironmentObject var configProvider: ConfigProvider
     var config: ConfigData { configProvider.config }
     var showPercentage: Bool { config["show-percentage"]?.boolValue ?? true }
-    var warningLevel: Int { config["warning-level"]?.intValue ?? 20 }
-    var criticalLevel: Int { config["critical-level"]?.intValue ?? 10 }
+    var criticalLevel: Int { config["critical-level"]?.intValue ?? 15 }
 
     @StateObject private var batteryManager = BatteryManager()
     private var level: Int { batteryManager.batteryLevel }
@@ -48,11 +47,11 @@ struct BatteryWidget: View {
         if isCharging {
             return .foregroundOutsideInvert
         }
+        if level <= criticalLevel {
+            return .white
+        }
         if isLowPowerMode {
             return .black
-        }
-        if level <= warningLevel {
-            return .white
         }
         return .foregroundOutsideInvert
     }
@@ -61,11 +60,11 @@ struct BatteryWidget: View {
         if isCharging {
             return .green
         }
-        if isLowPowerMode {
-            return .yellow
-        }
-        if level <= warningLevel {
+        if level <= criticalLevel {
             return .red
+        }
+        if isLowPowerMode {
+            return .orange
         }
         return .icon
     }
@@ -74,11 +73,11 @@ struct BatteryWidget: View {
         if isCharging {
             return .foregroundOutsideInvert
         }
-        if isLowPowerMode {
-            return .yellow
-        }
-        if level <= warningLevel {
+        if level <= criticalLevel {
             return .red
+        }
+        if isLowPowerMode {
+            return .orange
         }
         return .foregroundOutsideInvert
     }

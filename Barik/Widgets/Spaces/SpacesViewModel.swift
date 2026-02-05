@@ -6,6 +6,8 @@ class SpacesViewModel: ObservableObject {
     @Published var spaces: [AnySpace] = []
     private var timer: Timer?
     private var provider: AnySpacesProvider?
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private var lastStateSignature: String = ""
     var monitorName: String?
 
     init(monitorName: String? = nil) {
@@ -28,7 +30,29 @@ class SpacesViewModel: ObservableObject {
     }
 
     private func startMonitoring() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
+        // Event-driven: instant updates for app/space changes
+        let workspace = NSWorkspace.shared
+
+        // App activated (window focus changed)
+        let appObserver = workspace.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.loadSpaces()
+        }
+        workspaceObservers.append(appObserver)
+
+        // Space changed (macOS native notification)
+        let spaceObserver = workspace.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.loadSpaces()
+        }
+        workspaceObservers.append(spaceObserver)
+
+        // Fast polling with change detection (yabai/aerospace don't trigger NSWorkspace notifications)
+        timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) {
             [weak self] _ in
             self?.loadSpaces()
         }
@@ -38,15 +62,21 @@ class SpacesViewModel: ObservableObject {
     private func stopMonitoring() {
         timer?.invalidate()
         timer = nil
+        for observer in workspaceObservers {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        workspaceObservers.removeAll()
     }
 
     private func loadSpaces() {
-        DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global(qos: .userInitiated).async {
             guard let provider = self.provider,
                 let spaces = provider.getSpacesWithWindows()
             else {
                 DispatchQueue.main.async {
-                    self.spaces = []
+                    if !self.spaces.isEmpty {
+                        self.spaces = []
+                    }
                 }
                 return
             }
@@ -55,10 +85,24 @@ class SpacesViewModel: ObservableObject {
             if let monitor = self.monitorName {
                 filteredSpaces = sortedSpaces.filter { $0.monitor == monitor }
             }
+
+            // Change detection: only update UI if state actually changed
+            let signature = self.computeSignature(filteredSpaces)
+            guard signature != self.lastStateSignature else { return }
+
             DispatchQueue.main.async {
+                self.lastStateSignature = signature
                 self.spaces = filteredSpaces
             }
         }
+    }
+
+    /// Compute a signature of the current state to detect changes
+    private func computeSignature(_ spaces: [AnySpace]) -> String {
+        spaces.map { space in
+            let windowIds = space.windows.map { "\($0.id):\($0.isFocused)" }.joined(separator: ",")
+            return "\(space.id):\(space.isFocused):[\(windowIds)]"
+        }.joined(separator: "|")
     }
 
     func switchToSpace(_ space: AnySpace, needWindowFocus: Bool = false) {

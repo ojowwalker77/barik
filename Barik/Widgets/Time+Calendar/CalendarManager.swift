@@ -90,14 +90,28 @@ class CalendarManager: ObservableObject {
     }
 
     private func requestAccess() {
-        eventStore.requestFullAccessToEvents { [weak self] granted, error in
-            guard let self = self else { return }
-            self.hasAccess = granted && error == nil
-            if self.hasAccess {
-                self.fetchTodaysEvents()
-                self.fetchTomorrowsEvents()
-                self.fetchNextEvent()
+        let status = EKEventStore.authorizationStatus(for: .event)
+
+        switch status {
+        case .fullAccess, .authorized:
+            hasAccess = true
+            fetchTodaysEvents()
+            fetchTomorrowsEvents()
+            fetchNextEvent()
+        case .notDetermined:
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard let self = self else { return }
+                self.hasAccess = granted && error == nil
+                if self.hasAccess {
+                    self.fetchTodaysEvents()
+                    self.fetchTomorrowsEvents()
+                    self.fetchNextEvent()
+                }
             }
+        case .denied, .restricted, .writeOnly:
+            hasAccess = false
+        @unknown default:
+            hasAccess = false
         }
     }
 

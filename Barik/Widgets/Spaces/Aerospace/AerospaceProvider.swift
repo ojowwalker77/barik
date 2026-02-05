@@ -8,12 +8,16 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         guard var spaces = fetchSpaces(), let windows = fetchWindows() else {
             return nil
         }
-        if let focusedSpace = fetchFocusedSpace() {
+        // Fetch focused space/window once (avoid redundant subprocess calls)
+        let focusedSpace = fetchFocusedSpace()
+        let focusedWindow = fetchFocusedWindow()
+
+        if let focused = focusedSpace {
             for i in 0..<spaces.count {
-                spaces[i].isFocused = (spaces[i].id == focusedSpace.id)
+                spaces[i].isFocused = (spaces[i].id == focused.id)
             }
         }
-        let focusedWindow = fetchFocusedWindow()
+
         var spaceDict = Dictionary(
             uniqueKeysWithValues: spaces.map { ($0.id, $0) })
         for window in windows {
@@ -26,10 +30,11 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
                     space.windows.append(mutableWindow)
                     spaceDict[ws] = space
                 }
-            } else if let focusedSpace = fetchFocusedSpace() {
-                if var space = spaceDict[focusedSpace.id] {
+            } else if let focused = focusedSpace {
+                // Window without workspace goes to focused space
+                if var space = spaceDict[focused.id] {
                     space.windows.append(mutableWindow)
-                    spaceDict[focusedSpace.id] = space
+                    spaceDict[focused.id] = space
                 }
             }
         }
@@ -41,6 +46,10 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
     }
 
     func focusSpace(spaceId: String, needWindowFocus: Bool) {
+        // Skip if already focused (prevents redundant subprocess call)
+        if let focused = fetchFocusedSpace(), focused.id == spaceId {
+            return
+        }
         _ = runAerospaceCommand(arguments: ["workspace", spaceId])
     }
 
@@ -54,6 +63,7 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         process.arguments = arguments
         let pipe = Pipe()
         process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
         do {
             try process.run()
         } catch {
