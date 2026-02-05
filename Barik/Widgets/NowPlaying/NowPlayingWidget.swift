@@ -6,7 +6,6 @@ struct NowPlayingWidget: View {
     @EnvironmentObject var configProvider: ConfigProvider
     @ObservedObject var playingManager = NowPlayingManager.shared
 
-    @State private var widgetFrame: CGRect = .zero
     @State private var animatedWidth: CGFloat = 0
 
     var body: some View {
@@ -26,24 +25,8 @@ struct NowPlayingWidget: View {
 
                 // Visible content with fixed animated width.
                 VisibleNowPlayingContent(song: song, width: animatedWidth)
-                    .onTapGesture {
-                        MenuBarPopup.show(rect: widgetFrame, id: "nowplaying") {
-                            NowPlayingPopup(configProvider: configProvider)
-                        }
-                    }
             }
         }
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear {
-                        widgetFrame = geometry.frame(in: .global)
-                    }
-                    .onChange(of: geometry.frame(in: .global)) { _, newFrame in
-                        widgetFrame = newFrame
-                    }
-            }
-        )
     }
 }
 
@@ -53,7 +36,7 @@ struct NowPlayingWidget: View {
 struct NowPlayingContent: View {
     let song: NowPlayingSong
     @ObservedObject var configManager = ConfigManager.shared
-    var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
+    var foregroundHeight: CGFloat { configManager.config.foreground.resolveHeight() }
 
     var body: some View {
         Group {
@@ -69,7 +52,7 @@ struct NowPlayingContent: View {
                 }
                 .padding(.horizontal, foregroundHeight < 45 ? 8 : 12)
                 .frame(height: foregroundHeight < 45 ? 30 : 38)
-                .background(configManager.config.experimental.foreground.widgetsBackground.blur)
+                .background(configManager.config.foreground.widgetsBackground.blurMaterial)
                 .clipShape(Capsule())
                 .overlay(
                     Capsule().stroke(Color.noActive, lineWidth: 1)
@@ -152,7 +135,7 @@ struct AlbumArtView: View {
 struct SongTextView: View {
     let song: NowPlayingSong
     @ObservedObject var configManager = ConfigManager.shared
-    var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
+    var foregroundHeight: CGFloat { configManager.config.foreground.resolveHeight() }
 
     var body: some View {
 

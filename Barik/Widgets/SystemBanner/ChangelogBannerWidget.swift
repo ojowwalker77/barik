@@ -1,14 +1,9 @@
 import SwiftUI
 
 struct ChangelogBannerWidget: View {
-    @State private var rect: CGRect = .zero
-
     var body: some View {
 
         Button(action: {
-            MenuBarPopup.show(rect: rect, id: "changelog") {
-                ChangelogPopup()
-            }
         }) {
             HStack(alignment: .center) {
                 Text("What's new")
@@ -19,16 +14,6 @@ struct ChangelogBannerWidget: View {
                     }
             }
         }
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear { rect = geometry.frame(in: .global) }
-                    .onChange(of: geometry.frame(in: .global)) {
-                        _, newValue in
-                        rect = newValue
-                    }
-            }
-        )
         .buttonStyle(BannerButtonStyle(color: .green.opacity(0.8)))
         .transition(.blurReplace)
 

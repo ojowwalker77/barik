@@ -148,7 +148,7 @@
         }
       }
     },
-    "AVAILABLE WIDGETS" : {
+    "Available Widgets" : {
 
     },
     "Bluetooth" : {
@@ -161,6 +161,7 @@
 
     },
     "Channel: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -284,7 +285,10 @@
         }
       }
     },
-    "Connected" : {
+    "Config" : {
+
+    },
+    "Copy Path" : {
 
     },
     "Customize Toolbar" : {
@@ -302,7 +306,7 @@
     "Drag to toolbar or click to reset" : {
 
     },
-    "Edit Config File..." : {
+    "Edit Config File…" : {
 
     },
     "EMPTY_EVENTS" : {
@@ -431,6 +435,7 @@
       }
     },
     "Ethernet: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -554,10 +559,14 @@
         }
       }
     },
+    "Hidden (notch)" : {
+
+    },
     "Hidden Widgets" : {
 
     },
     "Noise: %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -681,13 +690,14 @@
         }
       }
     },
-    "Position:" : {
+    "Position" : {
 
     },
-    "RESTORE" : {
+    "Restore" : {
 
     },
     "RSSI: %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -812,6 +822,7 @@
       }
     },
     "Signal strength: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -934,9 +945,6 @@
           }
         }
       }
-    },
-    "Sound Settings..." : {
-
     },
     "TODAY" : {
       "extractionState" : "manual",
@@ -1443,6 +1451,7 @@
       }
     },
     "v%@ Changelog" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -1690,7 +1699,7 @@
         }
       }
     },
-    "ZONES" : {
+    "Zones" : {
 
     }
   },

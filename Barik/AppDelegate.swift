@@ -23,19 +23,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Configure tiling WMs to respect Barik's space
-        // Note: Bottom position adds extra padding for window shadows.
-        // To fully disable shadows: SIP disabled + yabai `yabai -m config window_shadow off`
-        let foregroundConfig = ConfigManager.shared.config.experimental.foreground
-        var barSize = Int(foregroundConfig.resolveHeight())
-        if foregroundConfig.position == .bottom {
-            barSize += 15  // Extra space for window shadows
-        }
-        TilingWMConfigurator.configureOnLaunch(barSize: barSize, position: foregroundConfig.position)
-
-        MenuBarPopup.setup()
-        setupPanels()
-
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersDidChange(_:)),
@@ -47,6 +34,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             selector: #selector(configDidChange),
             name: Notification.Name("ConfigDidChange"),
             object: nil)
+
+        configDidChange()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        let engine = WidgetGridEngine.shared
+        if engine.isCustomizing {
+            if engine.hasUnsavedChanges {
+                engine.finishCustomizing()
+            } else {
+                engine.isCustomizing = false
+            }
+        }
     }
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupPanels()
 
         // Reconfigure tiling WM for position change (runs on background queue)
-        let foregroundConfig = ConfigManager.shared.config.experimental.foreground
+        let foregroundConfig = ConfigManager.shared.config.foreground
         var barSize = Int(foregroundConfig.resolveHeight())
         if foregroundConfig.position == .bottom {
             barSize += 15
@@ -103,7 +103,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuBarPanels.removeValue(forKey: displayID)
         }
 
-        MenuBarPopup.setupAllScreens()
     }
 
     /// Sets up an NSPanel with the provided parameters for a specific display.

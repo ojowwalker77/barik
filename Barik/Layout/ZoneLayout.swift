@@ -193,6 +193,38 @@ struct ZonedLayout: Codable, Equatable {
         self.compaction = compaction
     }
 
+    enum CodingKeys: String, CodingKey {
+        case left, center, right
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let leftIds = (try? container.decode([String].self, forKey: .left)) ?? []
+        let centerIds = (try? container.decode([String].self, forKey: .center)) ?? []
+        let rightIds = (try? container.decode([String].self, forKey: .right)) ?? []
+
+        func makeItems(_ ids: [String]) -> [ZonedWidgetItem] {
+            ids.enumerated().map { index, widgetId in
+                ZonedWidgetItem(widgetId: widgetId, order: index)
+            }
+        }
+
+        self.left = makeItems(leftIds)
+        self.center = makeItems(centerIds)
+        self.right = makeItems(rightIds)
+        self.leftConfig = .leftDefault
+        self.centerConfig = .centerDefault
+        self.rightConfig = .rightDefault
+        self.compaction = .init()
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(left.map { $0.widgetId }, forKey: .left)
+        try container.encode(center.map { $0.widgetId }, forKey: .center)
+        try container.encode(right.map { $0.widgetId }, forKey: .right)
+    }
+
     /// Get items for a specific zone
     func items(for zone: Zone) -> [ZonedWidgetItem] {
         switch zone {

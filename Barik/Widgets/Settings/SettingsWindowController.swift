@@ -40,8 +40,8 @@ final class SettingsWindowController {
         if let screen = NSScreen.main {
             let screenFrame = screen.frame
             let visibleFrame = screen.visibleFrame
-            let position = ConfigManager.shared.config.experimental.foreground.position
-            let barHeight = ConfigManager.shared.config.experimental.foreground.resolveHeight()
+            let position = ConfigManager.shared.config.foreground.position
+            let barHeight = ConfigManager.shared.config.foreground.resolveHeight()
 
             let x = (screenFrame.width - windowWidth) / 2
             let y: CGFloat

@@ -26,21 +26,11 @@ struct DraggableWidget: Identifiable, Codable, Hashable {
         self.widgetId = widgetId
     }
 
-    /// Create from existing TomlWidgetItem
-    init(from tomlItem: TomlWidgetItem) {
-        self.instanceId = UUID()
-        self.widgetId = tomlItem.id
-    }
-
     /// Get the widget definition from the registry
     var definition: WidgetDefinition? {
         WidgetRegistry.widget(for: widgetId)
     }
 
-    /// Convert to TomlWidgetItem for config/rendering
-    func toTomlWidgetItem() -> TomlWidgetItem {
-        TomlWidgetItem(id: widgetId, inlineParams: [:])
-    }
 }
 
 extension DraggableWidget: Transferable {

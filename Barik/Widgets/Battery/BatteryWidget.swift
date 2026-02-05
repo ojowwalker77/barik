@@ -4,21 +4,20 @@ struct BatteryWidget: View {
     @EnvironmentObject var configProvider: ConfigProvider
     var config: ConfigData { configProvider.config }
     var showPercentage: Bool { config["show-percentage"]?.boolValue ?? true }
-    var warningLevel: Int { config["warning-level"]?.intValue ?? 20 }
-    var criticalLevel: Int { config["critical-level"]?.intValue ?? 10 }
+    var criticalLevel: Int { config["critical-level"]?.intValue ?? 15 }
 
     @StateObject private var batteryManager = BatteryManager()
     private var level: Int { batteryManager.batteryLevel }
     private var isCharging: Bool { batteryManager.isCharging }
     private var isPluggedIn: Bool { batteryManager.isPluggedIn }
-
-    @State private var rect: CGRect = CGRect()
+    private var isLowPowerMode: Bool { batteryManager.isLowPowerMode }
 
     var body: some View {
         ZStack {
             ZStack(alignment: .leading) {
                 BatteryBodyView(mask: false)
                     .opacity(showPercentage ? 0.3 : 0.4)
+                    .foregroundStyle(batteryOutlineColor)
                 BatteryBodyView(mask: true)
                     .clipShape(
                         Rectangle().path(
@@ -39,48 +38,48 @@ struct BatteryWidget: View {
                 .foregroundStyle(batteryTextColor)
             }
             .frame(width: 30, height: 10)
-            .background(
-                GeometryReader { geometry in
-                    Color.clear
-                        .onAppear {
-                            rect = geometry.frame(in: .global)
-                        }
-                        .onChange(of: geometry.frame(in: .global)) {
-                            oldState, newState in
-                            rect = newState
-                        }
-                }
-            )
         }
         .experimentalConfiguration(cornerRadius: 15)
         .frame(maxHeight: .infinity)
-        .background(.black.opacity(0.001))
-        .onTapGesture {
-            MenuBarPopup.show(rect: rect, id: "battery") { BatteryPopup() }
-        }
-
     }
 
     private var batteryTextColor: Color {
         if isCharging {
             return .foregroundOutsideInvert
-        } else {
-            return level > warningLevel ? .foregroundOutsideInvert : .black
         }
+        if level <= criticalLevel {
+            return .white
+        }
+        if isLowPowerMode {
+            return .black
+        }
+        return .foregroundOutsideInvert
     }
 
     private var batteryColor: Color {
         if isCharging {
             return .green
-        } else {
-            if level <= criticalLevel {
-                return .red
-            } else if level <= warningLevel {
-                return .yellow
-            } else {
-                return .icon
-            }
         }
+        if level <= criticalLevel {
+            return .red
+        }
+        if isLowPowerMode {
+            return .orange
+        }
+        return .icon
+    }
+
+    private var batteryOutlineColor: Color {
+        if isCharging {
+            return .foregroundOutsideInvert
+        }
+        if level <= criticalLevel {
+            return .red
+        }
+        if isLowPowerMode {
+            return .orange
+        }
+        return .foregroundOutsideInvert
     }
 }
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.6.2
+
+### Popups
+- Remove popups entirely; widget clicks no longer open panels
+
+### Battery
+- Battery icon turns yellow in Low Power Mode and red at warning level (#11)
+- Power source updates use notifications with a low-frequency fallback timer
+
+### Notch Detection
+- Hide center zone on built-in displays when bar is at top (#14)
+- Center widgets merge into left zone automatically
+- Customization mode shows "Hidden (notch)" indicator
+
+### Settings
+- Auto-save customization changes when the app quits
+
+### Fixes
+- Fix config persistence: settings no longer reset on app restart
+- Remove redundant ConfigStore; ConfigManager is now single source of truth
+- Add tolerant TOML decoding with fallback defaults for missing keys
+
 ## 0.6.1
 
 ### Multi-Monitor Support

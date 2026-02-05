@@ -19,8 +19,6 @@ struct TimeWidget: View {
     @State private var currentTime = Date()
     let calendarManager: CalendarManager
 
-    @State private var rect = CGRect()
-
     private let timer = Timer.publish(every: 1, on: .main, in: .common)
         .autoconnect()
 
@@ -40,29 +38,9 @@ struct TimeWidget: View {
         .onReceive(timer) { date in
             currentTime = date
         }
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear {
-                        rect = geometry.frame(in: .global)
-                    }
-                    .onChange(of: geometry.frame(in: .global)) {
-                        oldState, newState in
-                        rect = newState
-                    }
-            }
-        )
         .experimentalConfiguration(cornerRadius: 15)
         .frame(maxHeight: .infinity)
-        .background(.black.opacity(0.001))
         .monospacedDigit()
-        .onTapGesture {
-            MenuBarPopup.show(rect: rect, id: "calendar") {
-                CalendarPopup(
-                    calendarManager: calendarManager,
-                    configProvider: configProvider)
-            }
-        }
     }
 
     // Format the current time.
