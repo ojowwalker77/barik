@@ -2,23 +2,98 @@ import Foundation
 
 /// Configures tiling window managers (AeroSpace, Yabai) to respect Barik's space
 class TilingWMConfigurator {
+    private static let lock = NSLock()
+    private struct ConfigurationRequest: Equatable {
+        let barSize: Int
+        let position: BarPosition
+    }
+
+    private static var lastApplied: ConfigurationRequest?
+    private static var pendingRequest: ConfigurationRequest?
 
     static func configureOnLaunch(barSize: Int, position: BarPosition) {
+        let request = ConfigurationRequest(barSize: barSize, position: position)
+        guard beginConfigurationIfNeeded(request) else {
+            return
+        }
+
         DispatchQueue.global(qos: .userInitiated).async {
-            configureAeroSpace(barSize: barSize, position: position)
-            configureYabai(barSize: barSize, position: position)
+            let aerospaceSucceeded = configureAeroSpace(barSize: barSize, position: position)
+            let yabaiSucceeded = configureYabai(barSize: barSize, position: position)
+            finishConfiguration(request, succeeded: aerospaceSucceeded && yabaiSucceeded)
+        }
+    }
+
+    static func beginConfigurationIfNeeded(_ request: (barSize: Int, position: BarPosition)) -> Bool {
+        beginConfigurationIfNeeded(ConfigurationRequest(barSize: request.barSize, position: request.position))
+    }
+
+    static func finishConfiguration(_ request: (barSize: Int, position: BarPosition), succeeded: Bool) {
+        finishConfiguration(ConfigurationRequest(barSize: request.barSize, position: request.position), succeeded: succeeded)
+    }
+
+    static func resetConfigurationState() {
+        lock.lock()
+        defer { lock.unlock() }
+        lastApplied = nil
+        pendingRequest = nil
+    }
+
+    private static func beginConfigurationIfNeeded(_ request: ConfigurationRequest) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if lastApplied == request || pendingRequest == request {
+            return false
+        }
+        pendingRequest = request
+        return true
+    }
+
+    private static func finishConfiguration(_ request: ConfigurationRequest, succeeded: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if pendingRequest == request {
+            pendingRequest = nil
+        }
+        if succeeded {
+            lastApplied = request
         }
     }
 
     // MARK: - AeroSpace
 
-    private static func configureAeroSpace(barSize: Int, position: BarPosition) {
+    private static func configureAeroSpace(barSize: Int, position: BarPosition) -> Bool {
         let configPath = NSString(string: "~/.aerospace.toml").expandingTildeInPath
 
-        guard FileManager.default.fileExists(atPath: configPath) else { return }
-        guard let content = try? String(contentsOfFile: configPath, encoding: .utf8) else { return }
+        guard FileManager.default.fileExists(atPath: configPath) else { return true }
+        guard let content = try? String(contentsOfFile: configPath, encoding: .utf8) else {
+            AppDiagnostics.shared.post(id: "wm-aerospace", kind: .wm, title: "AeroSpace Config Error", message: "Unable to read ~/.aerospace.toml.")
+            return false
+        }
 
-        // Update both outer gaps: active position gets barSize, other gets default
+        let updated = applyingAeroSpaceGapEdits(to: content, barSize: barSize, position: position)
+
+        do {
+            try updated.write(toFile: configPath, atomically: true, encoding: .utf8)
+            guard reloadAeroSpace() else { return false }
+            AppDiagnostics.shared.clear(id: "wm-aerospace")
+            return true
+        } catch {
+            AppDiagnostics.shared.post(id: "wm-aerospace", kind: .wm, title: "AeroSpace Config Error", message: error.localizedDescription)
+            return false
+        }
+    }
+
+    private static func aerospaceGapKey(for position: BarPosition) -> String {
+        switch position {
+        case .top: return "outer.top"
+        case .bottom: return "outer.bottom"
+        }
+    }
+
+    static func applyingAeroSpaceGapEdits(to content: String, barSize: Int, position: BarPosition) -> String {
         let allPositions: [BarPosition] = [.top, .bottom]
         let defaultGap = 10
         var updated = content
@@ -29,23 +104,9 @@ class TilingWMConfigurator {
             updated = setAeroSpaceGap(in: updated, gapKey: gapKey, value: value, position: pos)
         }
 
-        // Reset left/right gaps to default (cleanup from old vertical support)
         updated = resetAeroSpaceGap(in: updated, gapKey: "outer.left", value: defaultGap)
         updated = resetAeroSpaceGap(in: updated, gapKey: "outer.right", value: defaultGap)
-
-        do {
-            try updated.write(toFile: configPath, atomically: true, encoding: .utf8)
-            reloadAeroSpace()
-        } catch {
-            // Silent failure - user can't act on this from console
-        }
-    }
-
-    private static func aerospaceGapKey(for position: BarPosition) -> String {
-        switch position {
-        case .top: return "outer.top"
-        case .bottom: return "outer.bottom"
-        }
+        return updated
     }
 
     /// Sets a single AeroSpace gap in the config content.
@@ -135,7 +196,7 @@ class TilingWMConfigurator {
         return content
     }
 
-    private static func reloadAeroSpace() {
+    private static func reloadAeroSpace() -> Bool {
         let aerospacePathBrew = "/opt/homebrew/bin/aerospace"
         let aerospacePathLocal = "/usr/local/bin/aerospace"
 
@@ -145,7 +206,7 @@ class TilingWMConfigurator {
         } else if FileManager.default.fileExists(atPath: aerospacePathLocal) {
             path = aerospacePathLocal
         } else {
-            return
+            return true
         }
 
         let task = Process()
@@ -155,24 +216,23 @@ class TilingWMConfigurator {
         do {
             try task.run()
             task.waitUntilExit()
+            if task.terminationStatus != 0 {
+                AppDiagnostics.shared.post(id: "wm-aerospace", kind: .wm, title: "AeroSpace Reload Failed", message: "AeroSpace rejected the updated configuration.")
+                return false
+            }
+            return true
         } catch {
-            // Silent failure
+            AppDiagnostics.shared.post(id: "wm-aerospace", kind: .wm, title: "AeroSpace Reload Failed", message: error.localizedDescription)
+            return false
         }
     }
 
     // MARK: - Yabai
 
-    private static func configureYabai(barSize: Int, position: BarPosition) {
-        let yabaiPathBrew = "/opt/homebrew/bin/yabai"
-        let yabaiPathLocal = "/usr/local/bin/yabai"
-
-        let path: String
-        if FileManager.default.fileExists(atPath: yabaiPathBrew) {
-            path = yabaiPathBrew
-        } else if FileManager.default.fileExists(atPath: yabaiPathLocal) {
-            path = yabaiPathLocal
-        } else {
-            return
+    private static func configureYabai(barSize: Int, position: BarPosition) -> Bool {
+        let path = ConfigManager.shared.config.yabai.path
+        guard FileManager.default.fileExists(atPath: path) else {
+            return true
         }
 
         // Check if yabai is running
@@ -188,22 +248,22 @@ class TilingWMConfigurator {
             checkTask.waitUntilExit()
 
             if checkTask.terminationStatus != 0 {
-                return
+                return true
             }
         } catch {
-            return
+            return true
         }
 
         // Configure based on position
         switch position {
         case .top:
-            configureYabaiExternalBar(path: path, topPadding: barSize, bottomPadding: 0)
+            return configureYabaiExternalBar(path: path, topPadding: barSize, bottomPadding: 0)
         case .bottom:
-            configureYabaiExternalBar(path: path, topPadding: 0, bottomPadding: barSize)
+            return configureYabaiExternalBar(path: path, topPadding: 0, bottomPadding: barSize)
         }
     }
 
-    private static func configureYabaiExternalBar(path: String, topPadding: Int, bottomPadding: Int) {
+    private static func configureYabaiExternalBar(path: String, topPadding: Int, bottomPadding: Int) -> Bool {
         // Format: yabai -m config external_bar all:TOP_PADDING:BOTTOM_PADDING
         let task = Process()
         task.executableURL = URL(fileURLWithPath: path)
@@ -212,8 +272,16 @@ class TilingWMConfigurator {
         do {
             try task.run()
             task.waitUntilExit()
+            if task.terminationStatus != 0 {
+                AppDiagnostics.shared.post(id: "wm-yabai", kind: .wm, title: "Yabai Config Failed", message: "Unable to update yabai external_bar.")
+                return false
+            } else {
+                AppDiagnostics.shared.clear(id: "wm-yabai")
+                return true
+            }
         } catch {
-            // Silent failure
+            AppDiagnostics.shared.post(id: "wm-yabai", kind: .wm, title: "Yabai Config Failed", message: error.localizedDescription)
+            return false
         }
     }
 

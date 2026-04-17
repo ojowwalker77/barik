@@ -1,34 +1,33 @@
 import SwiftUI
 
 struct SpacesWidget: View {
-    let monitorName: String?
-    @StateObject var viewModel: SpacesViewModel
+    let displayID: CGDirectDisplayID?
+    @ObservedObject private var store = SpacesStore.shared
 
     @ObservedObject var configManager = ConfigManager.shared
     var foregroundHeight: CGFloat { configManager.config.foreground.resolveHeight() }
 
-    init(monitorName: String? = nil) {
-        self.monitorName = monitorName
-        _viewModel = StateObject(wrappedValue: SpacesViewModel(monitorName: monitorName))
+    init(displayID: CGDirectDisplayID? = nil) {
+        self.displayID = displayID
     }
 
     var body: some View {
         HStack(spacing: foregroundHeight < 30 ? 0 : 8) {
-            ForEach(viewModel.spaces) { space in
+            ForEach(store.spaces(for: displayID)) { space in
                 SpaceView(space: space)
             }
         }
         .experimentalConfiguration(horizontalPadding: 5, cornerRadius: 10)
-        .animation(.smooth(duration: 0.3), value: viewModel.spaces)
+        .animation(.smooth(duration: 0.3), value: store.spaces(for: displayID))
         .foregroundStyle(Color.foreground)
-        .environmentObject(viewModel)
+        .environmentObject(store)
     }
 }
 
 /// This view shows a space with its windows.
 private struct SpaceView: View {
     @EnvironmentObject var configProvider: ConfigProvider
-    @EnvironmentObject var viewModel: SpacesViewModel
+    @EnvironmentObject var viewModel: SpacesStore
 
     var config: ConfigData { configProvider.config }
     var spaceConfig: ConfigData { config["space"]?.dictionaryValue ?? [:] }
@@ -87,7 +86,7 @@ private struct SpaceView: View {
 /// This view shows a window and its icon.
 private struct WindowView: View {
     @EnvironmentObject var configProvider: ConfigProvider
-    @EnvironmentObject var viewModel: SpacesViewModel
+    @EnvironmentObject var viewModel: SpacesStore
 
     var config: ConfigData { configProvider.config }
     var windowConfig: ConfigData { config["window"]?.dictionaryValue ?? [:] }
@@ -152,9 +151,7 @@ private struct WindowView: View {
         .frame(height: 30)
         .contentShape(Rectangle())
         .onTapGesture {
-            viewModel.switchToSpace(space)
-            usleep(100_000)
-            viewModel.switchToWindow(window)
+            viewModel.switchToWindow(window, in: space)
         }
         .onHover { value in
             isHovered = value

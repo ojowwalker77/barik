@@ -33,14 +33,16 @@ struct BarDropDelegate: DropDelegate {
             }
         }
 
-        engine.updateDrag(location: info.location, isOutside: false)
+        let globalLocation = engine.globalPoint(from: info.location)
+        engine.updateDrag(location: globalLocation, isOutside: false)
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
         guard engine.isCustomizing else { return DropProposal(operation: .cancel) }
 
-        let isOutside = !isInsideDropZone(info.location)
-        engine.updateDrag(location: info.location, isOutside: isOutside)
+        let globalLocation = engine.globalPoint(from: info.location)
+        let isOutside = !isInsideDropZone(globalLocation)
+        engine.updateDrag(location: globalLocation, isOutside: isOutside)
 
         if isOutside && engine.draggedPlacementId != nil {
             // Dragging existing widget outside = removal
@@ -52,7 +54,8 @@ struct BarDropDelegate: DropDelegate {
 
     func dropExited(info: DropInfo) {
         guard engine.isCustomizing else { return }
-        engine.updateDrag(location: info.location, isOutside: true)
+        let globalLocation = engine.globalPoint(from: info.location)
+        engine.updateDrag(location: globalLocation, isOutside: true)
     }
 
     func performDrop(info: DropInfo) -> Bool {
@@ -80,14 +83,14 @@ struct BarDropDelegate: DropDelegate {
         }
 
         // Otherwise, load from provider and insert
-        let dropLocation = info.location
+        let dropLocation = engine.globalPoint(from: info.location)
         for provider in providers {
             _ = provider.loadTransferable(type: DraggableWidget.self) { [engine] result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success(let widget):
                         // Determine zone from drop location
-                        let zone = zoneForLocation(dropLocation)
+                        let zone = engine.zoneForGlobalLocation(dropLocation)
                         withAnimation(.spring(duration: 0.25)) {
                             _ = engine.insert(widgetId: widget.widgetId, in: zone)
                         }
@@ -101,22 +104,7 @@ struct BarDropDelegate: DropDelegate {
         return true
     }
 
-    private func isInsideDropZone(_ location: CGPoint) -> Bool {
-        let expandedFrame = engine.containerFrame.insetBy(dx: -20, dy: -30)
-        return expandedFrame.contains(location)
-    }
-
-    /// Determine which zone a location falls into
-    private func zoneForLocation(_ location: CGPoint) -> Zone {
-        let totalWidth = engine.containerFrame.width - engine.horizontalPadding * 2
-        let relativeX = location.x - engine.horizontalPadding - engine.containerFrame.minX
-
-        if relativeX < totalWidth * 0.33 {
-            return .left
-        } else if relativeX > totalWidth * 0.67 {
-            return .right
-        } else {
-            return .center
-        }
+    private func isInsideDropZone(_ globalLocation: CGPoint) -> Bool {
+        engine.isInsideBar(globalLocation)
     }
 }

@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 for: displayID,
                 frame: panelFrame,
                 level: Int(CGWindowLevelForKey(.backstopMenu)),
-                hostingRootView: AnyView(MenuBarView(monitorName: screen.localizedName)))
+                hostingRootView: AnyView(MenuBarView(displayID: displayID)))
         }
 
         // Remove panels for disconnected screens
@@ -146,6 +146,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension NSScreen {
+    static func screen(with displayID: CGDirectDisplayID) -> NSScreen? {
+        screens.first { $0.displayID == displayID }
+    }
+
     var displayID: CGDirectDisplayID {
         guard let screenNumber = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return 0

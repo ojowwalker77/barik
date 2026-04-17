@@ -2,8 +2,10 @@ import Combine
 import Foundation
 import IOKit.ps
 
-/// This class monitors the battery status.
-class BatteryManager: ObservableObject {
+/// Shared battery state for all panels/widgets.
+final class BatteryService: ObservableObject {
+    static let shared = BatteryService()
+
     @Published var batteryLevel: Int = 0
     @Published var isCharging: Bool = false
     @Published var isPluggedIn: Bool = false
@@ -13,7 +15,7 @@ class BatteryManager: ObservableObject {
     private var powerSourceRunLoopSource: CFRunLoopSource?
     private let fallbackInterval: TimeInterval = 30
 
-    init() {
+    private init() {
         startMonitoring()
         powerStateObserver = NotificationCenter.default.addObserver(
             forName: .NSProcessInfoPowerStateDidChange,
@@ -58,7 +60,7 @@ class BatteryManager: ObservableObject {
         guard powerSourceRunLoopSource == nil else { return }
         let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
         if let source = IOPSNotificationCreateRunLoopSource(
-            BatteryManager.powerSourceCallback,
+            BatteryService.powerSourceCallback,
             context
         )?.takeRetainedValue() {
             powerSourceRunLoopSource = source
@@ -108,9 +110,11 @@ class BatteryManager: ObservableObject {
     private static let powerSourceCallback:
         @convention(c) (UnsafeMutableRawPointer?) -> Void = { context in
             guard let context else { return }
-            let manager = Unmanaged<BatteryManager>
+            let manager = Unmanaged<BatteryService>
                 .fromOpaque(context)
                 .takeUnretainedValue()
             manager.handlePowerSourceChange()
         }
 }
+
+typealias BatteryManager = BatteryService

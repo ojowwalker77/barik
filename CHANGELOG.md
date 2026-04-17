@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Reliability
+- Preserve invalid configs on parse errors and keep the last valid config active
+- Clear config error state correctly when a repaired file is restored
+- Safer app update installs with validation, backup, and rollback flow
+
+### Performance
+- Centralize battery, Bluetooth, network, now playing, and spaces monitoring into shared services
+- Reduce spaces and fallback media polling churn across multi-display setups
+- Remove main-thread blocking from space and window focus flow
+
+### UI & UX
+- Fix customization window sizing and monitor placement
+- Replace hidden palette double-click behavior with explicit add actions
+- Keep Bluetooth visible during customization and show inline config errors
+- Use display geometry for notch handling and unify drag/drop coordinates
+
+### Defaults & Safety
+- Stop changing the macOS menu bar auto-hide setting unless explicitly enabled
+- Stop inferring Wi-Fi disconnection from missing SSID data
+- Keep displays with no matching spaces empty instead of showing another monitor's spaces
+- Retry tiling WM configuration after transient failures
+
 ## 0.6.2
 
 ### Popups

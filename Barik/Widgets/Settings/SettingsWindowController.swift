@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 final class SettingsWindowController {
@@ -22,8 +23,8 @@ final class SettingsWindowController {
         let customizationView = ToolbarCustomizationSheet()
         let hostingView = NSHostingView(rootView: customizationView)
 
-        let windowWidth: CGFloat = 380
-        let windowHeight: CGFloat = 460
+        let windowWidth: CGFloat = 680
+        let windowHeight: CGFloat = 760
 
         let newWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),
@@ -35,28 +36,30 @@ final class SettingsWindowController {
         newWindow.contentView = hostingView
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = WindowDelegate.shared
+        newWindow.minSize = NSSize(width: 640, height: 700)
+        newWindow.setContentSize(NSSize(width: windowWidth, height: windowHeight))
 
         // Position window near bar, centered horizontally
-        if let screen = NSScreen.main {
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main {
             let screenFrame = screen.frame
             let visibleFrame = screen.visibleFrame
             let position = ConfigManager.shared.config.foreground.position
             let barHeight = ConfigManager.shared.config.foreground.resolveHeight()
 
-            let x = (screenFrame.width - windowWidth) / 2
+            let x = screenFrame.minX + (screenFrame.width - windowWidth) / 2
             let y: CGFloat
 
             if position == .top {
-                // Below the bar at top
                 let menuBarHeight = screenFrame.height - visibleFrame.height - visibleFrame.origin.y
                 let topOffset = menuBarHeight + barHeight + 10
-                y = screenFrame.height - topOffset - windowHeight
+                y = screenFrame.maxY - topOffset - windowHeight
             } else {
-                // Above the bar at bottom
-                y = barHeight + 10
+                y = screenFrame.minY + barHeight + 10
             }
 
-            newWindow.setFrameOrigin(NSPoint(x: x, y: y))
+            let clampedX = min(max(x, visibleFrame.minX), visibleFrame.maxX - windowWidth)
+            let clampedY = min(max(y, visibleFrame.minY), visibleFrame.maxY - windowHeight)
+            newWindow.setFrameOrigin(NSPoint(x: clampedX, y: clampedY))
         } else {
             newWindow.center()
         }

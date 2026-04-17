@@ -242,6 +242,8 @@ final class NowPlayingManager: ObservableObject {
     private let mediaRemote = MediaRemoteService.shared
     private var cancellables = Set<AnyCancellable>()
     private var pollTimer: AnyCancellable?
+    private var isFetching = false
+    private var currentPollingInterval: TimeInterval?
 
     /// Whether we're using MediaRemote (true) or AppleScript fallback (false)
     var isUsingMediaRemote: Bool { mediaRemote.isAvailable }
@@ -271,20 +273,34 @@ final class NowPlayingManager: ObservableObject {
     // MARK: - AppleScript Fallback Mode
 
     private func startAppleScriptPolling() {
-        pollTimer = Timer.publish(every: 0.3, on: .main, in: .common)
+        updatePollingInterval()
+        fetchViaAppleScript()
+    }
+
+    private func fetchViaAppleScript() {
+        guard !isFetching else { return }
+        isFetching = true
+        DispatchQueue.global(qos: .background).async {
+            let song = NowPlayingProvider.fetchNowPlaying()
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.nowPlaying = song
+                self.isFetching = false
+                self.updatePollingInterval()
+            }
+        }
+    }
+
+    private func updatePollingInterval() {
+        let interval = NowPlayingProvider.activeMusicApp() == nil ? 3.0 : 1.0
+        guard currentPollingInterval != interval else { return }
+        currentPollingInterval = interval
+        pollTimer?.cancel()
+        pollTimer = Timer.publish(every: interval, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.fetchViaAppleScript()
             }
-    }
-
-    private func fetchViaAppleScript() {
-        DispatchQueue.global(qos: .background).async {
-            let song = NowPlayingProvider.fetchNowPlaying()
-            DispatchQueue.main.async { [weak self] in
-                self?.nowPlaying = song
-            }
-        }
     }
 
     // MARK: - Playback Commands
@@ -316,3 +332,5 @@ final class NowPlayingManager: ObservableObject {
         }
     }
 }
+
+typealias NowPlayingService = NowPlayingManager

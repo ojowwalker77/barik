@@ -1,21 +1,25 @@
 import SwiftUI
 
 struct MenuBarView: View {
-    let monitorName: String?
+    let displayID: CGDirectDisplayID?
     @ObservedObject var configManager = ConfigManager.shared
     @Bindable var engine = WidgetGridEngine.shared
 
     @State private var poofLocation: CGPoint?
-    @State private var showOverflowMenu = false
 
-    init(monitorName: String? = nil) {
-        self.monitorName = monitorName
+    init(displayID: CGDirectDisplayID? = nil) {
+        self.displayID = displayID
+    }
+
+    private var screen: NSScreen? {
+        guard let displayID else { return NSScreen.main }
+        return NSScreen.screen(with: displayID)
     }
 
     /// Hide center zone on notched MacBooks when bar is at top (notch blocks center)
     private var shouldHideCenterZone: Bool {
         let isTop = configManager.config.foreground.position == .top
-        let isNotchedScreen = monitorName?.contains("Built-in") == true
+        let isNotchedScreen = (screen?.safeAreaInsets.top ?? 0) > 0
         return isTop && isNotchedScreen
     }
 
@@ -104,7 +108,7 @@ struct MenuBarView: View {
             // When center is hidden, center widgets are appended to left zone
             ZoneView(
                 zone: .left,
-                monitorName: monitorName,
+                displayID: displayID,
                 spacing: spacing,
                 widgetsToHide: widgetsToHide,
                 configManager: configManager,
@@ -116,7 +120,7 @@ struct MenuBarView: View {
             if !shouldHideCenterZone {
                 ZoneView(
                     zone: .center,
-                    monitorName: monitorName,
+                    displayID: displayID,
                     spacing: spacing,
                     widgetsToHide: widgetsToHide,
                     configManager: configManager
@@ -126,21 +130,12 @@ struct MenuBarView: View {
             // Right Zone - expands to fill, content aligned trailing
             ZoneView(
                 zone: .right,
-                monitorName: monitorName,
+                displayID: displayID,
                 spacing: spacing,
                 widgetsToHide: widgetsToHide,
                 configManager: configManager
             )
             .frame(maxWidth: .infinity, alignment: .trailing)
-
-            // Overflow menu button if there are hidden widgets
-            if !engine.overflowWidgets.isEmpty {
-                OverflowMenuButton(
-                    overflowWidgets: engine.overflowWidgets,
-                    monitorName: monitorName,
-                    configManager: configManager
-                )
-            }
 
             // System banner (if not in widgets)
             if !engine.allPlacements.contains(where: { $0.widgetId == "system-banner" }) {
@@ -240,7 +235,7 @@ struct MenuBarView: View {
 
 struct ZoneView: View {
     let zone: Zone
-    let monitorName: String?
+    let displayID: CGDirectDisplayID?
     let spacing: CGFloat
     let widgetsToHide: Set<String>
     let configManager: ConfigManager
@@ -271,7 +266,7 @@ struct ZoneView: View {
 
         switch widgetId {
         case "default.spaces":
-            SpacesWidget(monitorName: monitorName).environmentObject(config)
+            SpacesWidget(displayID: displayID).environmentObject(config)
 
         case "default.network":
             NetworkWidget().environmentObject(config)
@@ -368,7 +363,7 @@ struct CustomizationZoneView: View {
 
         switch widgetId {
         case "default.spaces":
-            SpacesWidget(monitorName: nil).environmentObject(config)
+            SpacesWidget(displayID: nil).environmentObject(config)
 
         case "default.network":
             NetworkWidget().environmentObject(config)
@@ -383,7 +378,7 @@ struct CustomizationZoneView: View {
             NowPlayingWidget().environmentObject(config)
 
         case "default.bluetooth":
-            BluetoothWidget()
+            BluetoothWidget(forceShow: true)
 
         case "spacer":
             HStack {
@@ -405,50 +400,6 @@ struct CustomizationZoneView: View {
 
         default:
             Text("?\(widgetId)?").foregroundColor(.red)
-        }
-    }
-}
-
-// MARK: - Overflow Menu Button
-
-struct OverflowMenuButton: View {
-    let overflowWidgets: [WidgetPlacement]
-    let monitorName: String?
-    let configManager: ConfigManager
-
-    @State private var showMenu = false
-
-    var body: some View {
-        Button {
-            showMenu.toggle()
-        } label: {
-            Image(systemName: "chevron.right.2")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 4)
-        .popover(isPresented: $showMenu, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Hidden Widgets")
-                    .font(.headline)
-                    .padding(.bottom, 4)
-
-                ForEach(overflowWidgets) { placement in
-                    HStack(spacing: 8) {
-                        if let definition = WidgetRegistry.widget(for: placement.widgetId) {
-                            Image(systemName: definition.icon)
-                                .frame(width: 20)
-                            Text(definition.name)
-                        } else {
-                            Text(placement.widgetId)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-            .padding()
-            .frame(minWidth: 150)
         }
     }
 }

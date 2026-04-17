@@ -2,7 +2,20 @@ import SwiftUI
 
 /// Widget for the menu, displaying Wi‑Fi and Ethernet icons.
 struct NetworkWidget: View {
-    @StateObject private var viewModel = NetworkStatusViewModel()
+    @ObservedObject private var viewModel = NetworkStatusService.shared
+
+    static func wifiSymbolName(for state: NetworkState, ssid: String) -> String {
+        switch state {
+        case .connected, .connecting:
+            return "wifi"
+        case .connectedWithoutInternet:
+            return "wifi.exclamationmark"
+        case .disconnected, .disabled:
+            return "wifi.slash"
+        case .notSupported:
+            return "wifi.exclamationmark"
+        }
+    }
 
     var body: some View {
         HStack(spacing: 15) {
@@ -19,28 +32,24 @@ struct NetworkWidget: View {
     }
 
     private var wifiIcon: some View {
-        if viewModel.ssid == "Not connected" {
-            return Image(systemName: "wifi.slash")
-                .foregroundColor(.red)
-        }
         switch viewModel.wifiState {
         case .connected:
-            return Image(systemName: "wifi")
+            return Image(systemName: Self.wifiSymbolName(for: viewModel.wifiState, ssid: viewModel.ssid))
                 .foregroundColor(.foregroundOutside)
         case .connecting:
-            return Image(systemName: "wifi")
+            return Image(systemName: Self.wifiSymbolName(for: viewModel.wifiState, ssid: viewModel.ssid))
                 .foregroundColor(.yellow)
         case .connectedWithoutInternet:
-            return Image(systemName: "wifi.exclamationmark")
+            return Image(systemName: Self.wifiSymbolName(for: viewModel.wifiState, ssid: viewModel.ssid))
                 .foregroundColor(.yellow)
         case .disconnected:
-            return Image(systemName: "wifi.slash")
+            return Image(systemName: Self.wifiSymbolName(for: viewModel.wifiState, ssid: viewModel.ssid))
                 .foregroundColor(.gray)
         case .disabled:
-            return Image(systemName: "wifi.slash")
+            return Image(systemName: Self.wifiSymbolName(for: viewModel.wifiState, ssid: viewModel.ssid))
                 .foregroundColor(.red)
         case .notSupported:
-            return Image(systemName: "wifi.exclamationmark")
+            return Image(systemName: Self.wifiSymbolName(for: viewModel.wifiState, ssid: viewModel.ssid))
                 .foregroundColor(.gray)
         }
     }

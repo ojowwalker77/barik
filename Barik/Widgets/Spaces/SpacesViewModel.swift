@@ -2,26 +2,19 @@ import AppKit
 import Combine
 import Foundation
 
-class SpacesViewModel: ObservableObject {
-    @Published var spaces: [AnySpace] = []
-    private var timer: Timer?
-    private var provider: AnySpacesProvider?
-    private var workspaceObservers: [NSObjectProtocol] = []
-    private var lastStateSignature: String = ""
-    var monitorName: String?
+final class SpacesStore: ObservableObject {
+    static let shared = SpacesStore()
 
-    init(monitorName: String? = nil) {
-        self.monitorName = monitorName
-        let runningApps = NSWorkspace.shared.runningApplications.compactMap {
-            $0.localizedName?.lowercased()
-        }
-        if runningApps.contains("yabai") {
-            provider = AnySpacesProvider(YabaiSpacesProvider())
-        } else if runningApps.contains("aerospace") {
-            provider = AnySpacesProvider(AerospaceSpacesProvider())
-        } else {
-            provider = nil
-        }
+    @Published private(set) var spaces: [AnySpace] = []
+
+    private var timer: Timer?
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private let refreshQueue = DispatchQueue(label: "Barik.SpacesStore", qos: .userInitiated)
+    private var isRefreshing = false
+    private var hasPendingRefresh = false
+    private var lastStateSignature = ""
+
+    private init() {
         startMonitoring()
     }
 
@@ -29,34 +22,70 @@ class SpacesViewModel: ObservableObject {
         stopMonitoring()
     }
 
+    static func filterSpaces(_ spaces: [AnySpace], monitorName: String?) -> [AnySpace] {
+        guard let monitorName else { return spaces }
+        return spaces.filter { $0.monitor == nil || $0.monitor == monitorName }
+    }
+
+    func spaces(for displayID: CGDirectDisplayID?) -> [AnySpace] {
+        guard let displayID, let monitorName = NSScreen.screen(with: displayID)?.localizedName else {
+            return spaces
+        }
+
+        return Self.filterSpaces(spaces, monitorName: monitorName)
+    }
+
+    func switchToSpace(_ space: AnySpace, needWindowFocus: Bool = false) {
+        refreshQueue.async {
+            self.currentProvider()?.focusSpace(spaceId: space.id, needWindowFocus: needWindowFocus)
+            self.requestRefresh()
+        }
+    }
+
+    func switchToWindow(_ window: AnyWindow, in space: AnySpace) {
+        refreshQueue.async {
+            let provider = self.currentProvider()
+            provider?.focusSpace(spaceId: space.id, needWindowFocus: false)
+            self.refreshQueue.asyncAfter(deadline: .now() + 0.1) {
+                provider?.focusWindow(windowId: String(window.id))
+                self.requestRefresh()
+            }
+        }
+    }
+
+    func requestRefresh() {
+        refreshQueue.async {
+            if self.isRefreshing {
+                self.hasPendingRefresh = true
+                return
+            }
+            self.performRefresh()
+        }
+    }
+
     private func startMonitoring() {
-        // Event-driven: instant updates for app/space changes
         let workspace = NSWorkspace.shared
 
-        // App activated (window focus changed)
         let appObserver = workspace.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil, queue: .main
+            object: nil,
+            queue: .main
         ) { [weak self] _ in
-            self?.loadSpaces()
+            self?.requestRefresh()
         }
         workspaceObservers.append(appObserver)
 
-        // Space changed (macOS native notification)
         let spaceObserver = workspace.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
-            object: nil, queue: .main
+            object: nil,
+            queue: .main
         ) { [weak self] _ in
-            self?.loadSpaces()
+            self?.requestRefresh()
         }
         workspaceObservers.append(spaceObserver)
 
-        // Fast polling with change detection (yabai/aerospace don't trigger NSWorkspace notifications)
-        timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) {
-            [weak self] _ in
-            self?.loadSpaces()
-        }
-        loadSpaces()
+        updatePollingState()
+        requestRefresh()
     }
 
     private func stopMonitoring() {
@@ -68,71 +97,92 @@ class SpacesViewModel: ObservableObject {
         workspaceObservers.removeAll()
     }
 
-    private func loadSpaces() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            guard let provider = self.provider,
-                let spaces = provider.getSpacesWithWindows()
-            else {
-                DispatchQueue.main.async {
-                    if !self.spaces.isEmpty {
-                        self.spaces = []
-                    }
+    private func updatePollingState() {
+        let shouldPoll = currentProvider() != nil
+        DispatchQueue.main.async {
+            if shouldPoll, self.timer == nil {
+                self.timer = Timer.scheduledTimer(withTimeInterval: 0.75, repeats: true) { [weak self] _ in
+                    self?.requestRefresh()
                 }
-                return
-            }
-            let sortedSpaces = spaces.sorted { $0.id < $1.id }
-            var filteredSpaces = sortedSpaces
-            if let monitor = self.monitorName {
-                filteredSpaces = sortedSpaces.filter { $0.monitor == monitor }
-            }
-
-            // Change detection: only update UI if state actually changed
-            let signature = self.computeSignature(filteredSpaces)
-            guard signature != self.lastStateSignature else { return }
-
-            DispatchQueue.main.async {
-                self.lastStateSignature = signature
-                self.spaces = filteredSpaces
+            } else if !shouldPoll, self.timer != nil {
+                self.timer?.invalidate()
+                self.timer = nil
             }
         }
     }
 
-    /// Compute a signature of the current state to detect changes
+    private func performRefresh() {
+        isRefreshing = true
+        let provider = currentProvider()
+
+        guard let provider, let freshSpaces = provider.getSpacesWithWindows() else {
+            DispatchQueue.main.async {
+                self.updateSpacesIfNeeded([])
+            }
+            finishRefresh()
+            return
+        }
+
+        let sortedSpaces = freshSpaces.sorted { $0.id < $1.id }
+        DispatchQueue.main.async {
+            self.updateSpacesIfNeeded(sortedSpaces)
+        }
+        finishRefresh()
+    }
+
+    private func finishRefresh() {
+        refreshQueue.async {
+            self.isRefreshing = false
+            self.updatePollingState()
+            if self.hasPendingRefresh {
+                self.hasPendingRefresh = false
+                self.performRefresh()
+            }
+        }
+    }
+
+    private func updateSpacesIfNeeded(_ newSpaces: [AnySpace]) {
+        let signature = computeSignature(newSpaces)
+        guard signature != lastStateSignature else { return }
+        lastStateSignature = signature
+        spaces = newSpaces
+    }
+
     private func computeSignature(_ spaces: [AnySpace]) -> String {
         spaces.map { space in
             let windowIds = space.windows.map { "\($0.id):\($0.isFocused)" }.joined(separator: ",")
-            return "\(space.id):\(space.isFocused):[\(windowIds)]"
+            return "\(space.id):\(space.isFocused):\(space.monitor ?? ""):[\(windowIds)]"
         }.joined(separator: "|")
     }
 
-    func switchToSpace(_ space: AnySpace, needWindowFocus: Bool = false) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.provider?.focusSpace(
-                spaceId: space.id, needWindowFocus: needWindowFocus)
+    private func currentProvider() -> AnySpacesProvider? {
+        let runningApps = NSWorkspace.shared.runningApplications.compactMap { $0.localizedName?.lowercased() }
+        if runningApps.contains("yabai") {
+            return AnySpacesProvider(YabaiSpacesProvider())
         }
-    }
-
-    func switchToWindow(_ window: AnyWindow) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.provider?.focusWindow(windowId: String(window.id))
+        if runningApps.contains("aerospace") {
+            return AnySpacesProvider(AerospaceSpacesProvider())
         }
+        return nil
     }
 }
+
+typealias SpacesViewModel = SpacesStore
 
 class IconCache {
     static let shared = IconCache()
     private let cache = NSCache<NSString, NSImage>()
+
     private init() {}
+
     func icon(for appName: String) -> NSImage? {
         if let cached = cache.object(forKey: appName as NSString) {
             return cached
         }
+
         let workspace = NSWorkspace.shared
-        if let app = workspace.runningApplications.first(where: {
-            $0.localizedName == appName
-        }),
-            let bundleURL = app.bundleURL
-        {
+        if let app = workspace.runningApplications.first(where: { $0.localizedName == appName }),
+           let bundleURL = app.bundleURL {
             let icon = workspace.icon(forFile: bundleURL.path)
             cache.setObject(icon, forKey: appName as NSString)
             return icon

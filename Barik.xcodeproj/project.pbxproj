@@ -13,6 +13,7 @@
 
 /* Begin PBXFileReference section */
 		C10E2F8A2D41235900AC957C /* Barik.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Barik.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1C1A0012F17000100A1B2C3 /* BarikTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BarikTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +37,11 @@
 			path = Barik;
 			sourceTree = "<group>";
 		};
+		D1C1A0022F17000100A1B2C3 /* BarikTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BarikTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,6 +54,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D1C1A0032F17000100A1B2C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -56,6 +69,7 @@
 			children = (
 				C10E2F8B2D41235900AC957C /* Products */,
 				C1BB4B332D526B5C00A1F46E /* Barik */,
+				D1C1A0022F17000100A1B2C3 /* BarikTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -63,6 +77,7 @@
 			isa = PBXGroup;
 			children = (
 				C10E2F8A2D41235900AC957C /* Barik.app */,
+				D1C1A0012F17000100A1B2C3 /* BarikTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,7 +110,48 @@
 			productReference = C10E2F8A2D41235900AC957C /* Barik.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D1C1A0042F17000100A1B2C3 /* BarikTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D1C1A00B2F17000100A1B2C3 /* Build configuration list for PBXNativeTarget "BarikTests" */;
+			buildPhases = (
+				D1C1A0072F17000100A1B2C3 /* Sources */,
+				D1C1A0032F17000100A1B2C3 /* Frameworks */,
+				D1C1A0082F17000100A1B2C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D1C1A0062F17000100A1B2C3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D1C1A0022F17000100A1B2C3 /* BarikTests */,
+			);
+			name = BarikTests;
+			packageProductDependencies = (
+			);
+			productName = BarikTests;
+			productReference = D1C1A0012F17000100A1B2C3 /* BarikTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		D1C1A0052F17000100A1B2C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C10E2F822D41235900AC957C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C10E2F892D41235900AC957C;
+			remoteInfo = Barik;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		D1C1A0062F17000100A1B2C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C10E2F892D41235900AC957C /* Barik */;
+			targetProxy = D1C1A0052F17000100A1B2C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		C10E2F822D41235900AC957C /* Project object */ = {
@@ -107,6 +163,10 @@
 				TargetAttributes = {
 					C10E2F892D41235900AC957C = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					D1C1A0042F17000100A1B2C3 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = C10E2F892D41235900AC957C;
 					};
 				};
 			};
@@ -147,12 +207,20 @@
 			projectRoot = "";
 			targets = (
 				C10E2F892D41235900AC957C /* Barik */,
+				D1C1A0042F17000100A1B2C3 /* BarikTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		C10E2F882D41235900AC957C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1C1A0082F17000100A1B2C3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -188,6 +256,13 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		C10E2F862D41235900AC957C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1C1A0072F17000100A1B2C3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -339,10 +414,10 @@
 				INFOPLIST_FILE = Barik/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Barik;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Barik needs to control System Events to toggle menu bar auto-hide based on bar position.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Barik can optionally control System Events when menu bar auto-hide management is enabled.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "We need this permission for displaying calendar events";
 				INFOPLIST_KEY_NSHumanReadableCopyright = Pansy;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location permission for display WiFi network name";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Barik does not request location access during normal use.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -378,10 +453,10 @@
 				INFOPLIST_FILE = Barik/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Barik;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Barik needs to control System Events to toggle menu bar auto-hide based on bar position.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Barik can optionally control System Events when menu bar auto-hide management is enabled.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "We need this permission for displaying calendar events";
 				INFOPLIST_KEY_NSHumanReadableCopyright = Pansy;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location permission for display WiFi network name";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Barik does not request location access during normal use.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -392,6 +467,39 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D1C1A0092F17000100A1B2C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				PRODUCT_BUNDLE_IDENTIFIER = jow.BarikTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+				TEST_TARGET_NAME = Barik;
+			};
+			name = Debug;
+		};
+		D1C1A00A2F17000100A1B2C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				PRODUCT_BUNDLE_IDENTIFIER = jow.BarikTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+				TEST_TARGET_NAME = Barik;
 			};
 			name = Release;
 		};
@@ -412,6 +520,15 @@
 			buildConfigurations = (
 				C10E2FB02D41235B00AC957C /* Debug */,
 				C10E2FB12D41235B00AC957C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D1C1A00B2F17000100A1B2C3 /* Build configuration list for PBXNativeTarget "BarikTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1C1A0092F17000100A1B2C3 /* Debug */,
+				D1C1A00A2F17000100A1B2C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

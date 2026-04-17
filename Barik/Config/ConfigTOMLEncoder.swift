@@ -99,6 +99,14 @@ enum ConfigTOMLEncoder {
             lines.append("")
         }
 
+        if config.system != BarikConfig.SystemSettings() {
+            lines.append("[system]")
+            if config.system.manageMenuBarAutohide {
+                lines.append("manage-menu-bar-autohide = true")
+            }
+            lines.append("")
+        }
+
         // Yabai path (only if custom)
         lines.append("[yabai]")
         lines.append("path = \"\(config.yabai.path)\"")

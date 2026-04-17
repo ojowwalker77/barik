@@ -7,26 +7,22 @@ struct WidgetPlacement: Identifiable, Equatable {
     let widgetId: String
     var zone: Zone
     var orderInZone: Int
-    var compactionLevel: CompactionLevel
 
     var width: Int {
         let definition = WidgetRegistry.widget(for: widgetId)
-        let sizes = definition?.sizes ?? WidgetSizeSpec(full: 2)
-        return sizes.columns(for: compactionLevel) ?? sizes.full
+        return definition?.gridWidth ?? 2
     }
 
     init(
         id: UUID = UUID(),
         widgetId: String,
         zone: Zone,
-        orderInZone: Int = 0,
-        compactionLevel: CompactionLevel = .full
+        orderInZone: Int = 0
     ) {
         self.id = id
         self.widgetId = widgetId
         self.zone = zone
         self.orderInZone = orderInZone
-        self.compactionLevel = compactionLevel
     }
 }
 
@@ -38,19 +34,11 @@ final class WidgetGridEngine {
     // MARK: - Configuration
 
     let totalCells: Int = 20
-    let compactionThreshold: Double = 0.85
-
     // MARK: - State
 
     private(set) var leftPlacements: [WidgetPlacement] = []
     private(set) var centerPlacements: [WidgetPlacement] = []
     private(set) var rightPlacements: [WidgetPlacement] = []
-
-    /// Compaction states per widget instance
-    private(set) var compactionStates: [UUID: CompactionLevel] = [:]
-
-    /// Widgets that are in the overflow menu (hidden due to space)
-    private(set) var overflowWidgets: [WidgetPlacement] = []
 
     var isCustomizing: Bool = false
     var hasUnsavedChanges: Bool = false
@@ -210,63 +198,6 @@ final class WidgetGridEngine {
         let allocated = allocatedCells(for: zone)
         guard allocated > 0 else { return 0 }
         return Double(used) / Double(allocated)
-    }
-
-    // MARK: - Compaction
-
-    /// Run compaction algorithm for a zone
-    func runCompaction(for zone: Zone) {
-        let fillPct = fillPercentage(for: zone)
-        guard fillPct > compactionThreshold else {
-            // Reset compaction for zone
-            for placement in placements(for: zone) {
-                compactionStates[placement.id] = .full
-            }
-            return
-        }
-
-        // Sort by priority (lowest first - they get compacted first)
-        var zonePlacements = placements(for: zone).sorted { p1, p2 in
-            let pri1 = WidgetRegistry.widget(for: p1.widgetId)?.defaultPriority ?? 50
-            let pri2 = WidgetRegistry.widget(for: p2.widgetId)?.defaultPriority ?? 50
-            return pri1 < pri2
-        }
-
-        // Compact lowest priority widgets first
-        var currentFill = fillPct
-        for i in 0..<zonePlacements.count {
-            guard currentFill > compactionThreshold else { break }
-
-            let placement = zonePlacements[i]
-            let definition = WidgetRegistry.widget(for: placement.widgetId)
-            let sizes = definition?.sizes ?? WidgetSizeSpec(full: 2)
-
-            let currentLevel = compactionStates[placement.id] ?? .full
-
-            // Try to compact further
-            if currentLevel == .full && sizes.compact != nil {
-                compactionStates[placement.id] = .compact
-                let saved = sizes.full - (sizes.compact ?? sizes.full)
-                currentFill -= Double(saved) / Double(allocatedCells(for: zone))
-            } else if currentLevel == .compact && sizes.iconOnly != nil {
-                compactionStates[placement.id] = .iconOnly
-                let saved = (sizes.compact ?? sizes.full) - (sizes.iconOnly ?? sizes.compact ?? sizes.full)
-                currentFill -= Double(saved) / Double(allocatedCells(for: zone))
-            } else if currentLevel != .hidden {
-                // Move to overflow
-                compactionStates[placement.id] = .hidden
-                overflowWidgets.append(placement)
-                zonePlacements[i].compactionLevel = .hidden
-            }
-        }
-    }
-
-    /// Run compaction for all zones
-    func runCompactionAll() {
-        overflowWidgets.removeAll()
-        for zone in Zone.allCases {
-            runCompaction(for: zone)
-        }
     }
 
     // MARK: - Mutations
@@ -478,32 +409,11 @@ final class WidgetGridEngine {
             return
         }
 
-        // Determine zone from X position
-        let relativeX = location.x - horizontalPadding
-        let totalWidth = containerFrame.width - horizontalPadding * 2
-
-        let zone: Zone
-        if relativeX < totalWidth * 0.33 {
-            zone = .left
-        } else if relativeX > totalWidth * 0.67 {
-            zone = .right
-        } else {
-            zone = .center
-        }
-
+        let zone = zoneForGlobalLocation(location)
         dropTargetZone = zone
 
-        // Calculate index within zone
         let zonePlacements = placements(for: zone)
-        let zoneWidth = totalWidth / 3
-        let zoneStart: CGFloat
-        switch zone {
-        case .left: zoneStart = 0
-        case .center: zoneStart = totalWidth / 3
-        case .right: zoneStart = totalWidth * 2 / 3
-        }
-
-        let relativeInZone = relativeX - zoneStart
+        let relativeInZone = relativeXInZone(for: location, zone: zone)
         var accumulated: CGFloat = 0
         var foundIndex = zonePlacements.count
 
@@ -633,6 +543,35 @@ final class WidgetGridEngine {
     func isInsideBar(_ location: CGPoint) -> Bool {
         let expandedFrame = containerFrame.insetBy(dx: -20, dy: -30)
         return expandedFrame.contains(location)
+    }
+
+    func globalPoint(from localPoint: CGPoint) -> CGPoint {
+        CGPoint(x: containerFrame.minX + localPoint.x, y: containerFrame.minY + localPoint.y)
+    }
+
+    func zoneForGlobalLocation(_ location: CGPoint) -> Zone {
+        let relativeX = location.x - containerFrame.minX - horizontalPadding
+        let totalWidth = containerFrame.width - horizontalPadding * 2
+
+        if relativeX < totalWidth / 3 {
+            return .left
+        } else if relativeX > totalWidth * 2 / 3 {
+            return .right
+        }
+        return .center
+    }
+
+    private func relativeXInZone(for location: CGPoint, zone: Zone) -> CGFloat {
+        let totalWidth = containerFrame.width - horizontalPadding * 2
+        let relativeX = location.x - containerFrame.minX - horizontalPadding
+        switch zone {
+        case .left:
+            return relativeX
+        case .center:
+            return relativeX - totalWidth / 3
+        case .right:
+            return relativeX - (totalWidth * 2 / 3)
+        }
     }
 
     // MARK: - Config Sync

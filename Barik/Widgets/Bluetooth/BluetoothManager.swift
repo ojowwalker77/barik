@@ -8,14 +8,16 @@ struct BluetoothDevice {
     let deviceID: AudioDeviceID
 }
 
-class BluetoothManager: ObservableObject {
+final class BluetoothAudioService: ObservableObject {
+    static let shared = BluetoothAudioService()
+
     @Published var activeBluetoothAudio: BluetoothDevice?
     @Published var bluetoothOutputDevices: [BluetoothDevice] = []
     @Published var currentOutputDeviceID: AudioDeviceID = kAudioDeviceUnknown
 
     private var listenerBlock: AudioObjectPropertyListenerBlock?
 
-    init() {
+    private init() {
         updateCurrentDevice()
         setupAudioListener()
     }
@@ -246,3 +248,5 @@ class BluetoothManager: ObservableObject {
         return cfString as String
     }
 }
+
+typealias BluetoothManager = BluetoothAudioService

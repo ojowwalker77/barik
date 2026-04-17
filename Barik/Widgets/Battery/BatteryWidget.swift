@@ -6,11 +6,11 @@ struct BatteryWidget: View {
     var showPercentage: Bool { config["show-percentage"]?.boolValue ?? true }
     var criticalLevel: Int { config["critical-level"]?.intValue ?? 15 }
 
-    @StateObject private var batteryManager = BatteryManager()
-    private var level: Int { batteryManager.batteryLevel }
-    private var isCharging: Bool { batteryManager.isCharging }
-    private var isPluggedIn: Bool { batteryManager.isPluggedIn }
-    private var isLowPowerMode: Bool { batteryManager.isLowPowerMode }
+    @ObservedObject private var batteryService = BatteryService.shared
+    private var level: Int { batteryService.batteryLevel }
+    private var isCharging: Bool { batteryService.isCharging }
+    private var isPluggedIn: Bool { batteryService.isPluggedIn }
+    private var isLowPowerMode: Bool { batteryService.isLowPowerMode }
 
     var body: some View {
         ZStack {

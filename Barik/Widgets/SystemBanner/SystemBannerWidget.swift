@@ -20,7 +20,8 @@ struct SystemBannerWidget: View {
     let withLeftPadding: Bool
     
     @State private var showWhatsNew: Bool = false
-    
+    @ObservedObject private var diagnostics = AppDiagnostics.shared
+
     init(withLeftPadding: Bool = false) {
         self.withLeftPadding = withLeftPadding
     }
@@ -29,6 +30,9 @@ struct SystemBannerWidget: View {
         HStack(spacing: 15) {
             if withLeftPadding {
                 Color.clear.frame(width: 0)
+            }
+            if let diagnostic = diagnostics.messages.first {
+                DiagnosticBannerWidget(diagnostic: diagnostic)
             }
             UpdateBannerWidget()
             if showWhatsNew {
@@ -43,6 +47,27 @@ struct SystemBannerWidget: View {
                 showWhatsNew = false
             }
         }
+    }
+}
+
+struct DiagnosticBannerWidget: View {
+    let diagnostic: DiagnosticMessage
+
+    var body: some View {
+        Button {
+            AppDiagnostics.shared.clear(id: diagnostic.id)
+        } label: {
+            HStack(spacing: 6) {
+                Text(diagnostic.title)
+                    .fontWeight(.semibold)
+                Text(diagnostic.message)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Image(systemName: "xmark.circle.fill")
+            }
+        }
+        .help(diagnostic.message)
+        .buttonStyle(BannerButtonStyle(color: diagnostic.kind == .config ? .red.opacity(0.8) : .orange.opacity(0.8)))
     }
 }
 

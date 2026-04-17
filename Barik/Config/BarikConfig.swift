@@ -9,6 +9,7 @@ struct BarikConfig: Codable, Equatable {
     var zonedLayout: ZonedLayout = .default
     var foreground: ForegroundSettings = .init()
     var background: BackgroundSettings = .init()
+    var system: SystemSettings = .init()
     var yabai: YabaiSettings = .init()
     var aerospace: AerospaceSettings = .init()
 
@@ -25,12 +26,13 @@ struct BarikConfig: Codable, Equatable {
         zonedLayout = try container.decodeIfPresent(ZonedLayout.self, forKey: .zonedLayout) ?? .default
         foreground = try container.decodeIfPresent(ForegroundSettings.self, forKey: .foreground) ?? .init()
         background = try container.decodeIfPresent(BackgroundSettings.self, forKey: .background) ?? .init()
+        system = try container.decodeIfPresent(SystemSettings.self, forKey: .system) ?? .init()
         yabai = try container.decodeIfPresent(YabaiSettings.self, forKey: .yabai) ?? .init()
         aerospace = try container.decodeIfPresent(AerospaceSettings.self, forKey: .aerospace) ?? .init()
     }
 
     enum CodingKeys: String, CodingKey {
-        case theme, widgets, zonedLayout, foreground, background, yabai, aerospace
+        case theme, widgets, zonedLayout, foreground, background, system, yabai, aerospace
     }
 
     struct WidgetLayout: Codable, Equatable {
@@ -300,6 +302,21 @@ struct BarikConfig: Codable, Equatable {
             case 5: return .hudWindow
             default: return .contentBackground
             }
+        }
+    }
+
+    struct SystemSettings: Codable, Equatable {
+        var manageMenuBarAutohide: Bool = false
+
+        enum CodingKeys: String, CodingKey {
+            case manageMenuBarAutohide = "manage-menu-bar-autohide"
+        }
+
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            manageMenuBarAutohide = try container.decodeIfPresent(Bool.self, forKey: .manageMenuBarAutohide) ?? false
         }
     }
 

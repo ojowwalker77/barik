@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BluetoothWidget: View {
-    @StateObject private var bluetoothManager = BluetoothManager()
+    @ObservedObject private var bluetoothManager = BluetoothAudioService.shared
 
     /// When true, show the widget even if no device is connected (for customization mode)
     var forceShow: Bool = false

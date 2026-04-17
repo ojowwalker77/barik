@@ -1,6 +1,31 @@
 import EventKit
 import SwiftUI
 
+private enum TimeFormatterCache {
+    private static var cache: [String: DateFormatter] = [:]
+    private static let lock = NSLock()
+
+    static func formatter(pattern: String, timeZone: String?) -> DateFormatter {
+        let key = "\(pattern)|\(timeZone ?? "current")"
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let formatter = cache[key] {
+            return formatter
+        }
+
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate(pattern)
+        if let timeZone, let tz = TimeZone(identifier: timeZone) {
+            formatter.timeZone = tz
+        } else {
+            formatter.timeZone = TimeZone.current
+        }
+        cache[key] = formatter
+        return formatter
+    }
+}
+
 struct TimeWidget: View {
     @EnvironmentObject var configProvider: ConfigProvider
     var config: ConfigData { configProvider.config }
@@ -45,17 +70,7 @@ struct TimeWidget: View {
 
     // Format the current time.
     private func formattedTime(pattern: String, from time: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate(pattern)
-
-        if let timeZone = timeZone,
-            let tz = TimeZone(identifier: timeZone)
-        {
-            formatter.timeZone = tz
-        } else {
-            formatter.timeZone = TimeZone.current
-        }
-
+        let formatter = TimeFormatterCache.formatter(pattern: pattern, timeZone: timeZone)
         return formatter.string(from: time)
     }
 

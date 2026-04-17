@@ -4,6 +4,7 @@ import SwiftUI
 /// Safari-style toolbar customization palette
 struct ToolbarCustomizationSheet: View {
     @Bindable var engine = WidgetGridEngine.shared
+    @ObservedObject private var configManager = ConfigManager.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -12,6 +13,9 @@ struct ToolbarCustomizationSheet: View {
             header
 
             Form {
+                if let configError = configManager.configLoadError {
+                    ConfigErrorSection(error: configError)
+                }
                 ZoneLayoutSection(engine: engine)
                 AvailableWidgetsSection(engine: engine)
                 RestoreSection(engine: engine)
@@ -204,6 +208,14 @@ struct WidgetCard: View {
                 .lineLimit(1)
 
             Spacer()
+
+            Button("Add") {
+                withAnimation(.spring(duration: 0.25)) {
+                    _ = engine.insert(widgetId: definition.id, in: definition.defaultZone)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
         .padding(8)
         .background(
@@ -228,10 +240,26 @@ struct WidgetCard: View {
                     engine.cancelDrag()
                 }
         }
-        .onTapGesture(count: 2) {
-            withAnimation(.spring(duration: 0.25)) {
-                _ = engine.insert(widgetId: definition.id, in: definition.defaultZone)
+    }
+}
+
+struct ConfigErrorSection: View {
+    let error: ConfigLoadError
+
+    var body: some View {
+        GroupBox("Config Error") {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(error.path)
+                    .font(.footnote.monospaced())
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                Text(error.message)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
         }
     }
 }
@@ -355,6 +383,12 @@ struct ConfigSection: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     BarPositionPicker()
+                    Toggle("Manage Menu Bar", isOn: Binding(
+                        get: { ConfigManager.shared.config.system.manageMenuBarAutohide },
+                        set: { ConfigManager.shared.updateConfigValue(key: "system.manage-menu-bar-autohide", newValue: $0) }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
                 }
             }
             .padding(.top, 4)
