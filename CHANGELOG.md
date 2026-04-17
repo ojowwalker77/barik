@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.3
 
 ### Reliability
 - Preserve invalid configs on parse errors and keep the last valid config active
